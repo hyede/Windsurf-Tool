@@ -523,6 +523,17 @@ function deactivateMaintenanceMode() {
   alert('✅ 服务器维护已结束，应用已恢复正常！');
 }
 
+// 退出应用程序
+function quitApplication() {
+  console.log('🚪 用户请求退出应用...');
+  if (window.ipcRenderer) {
+    window.ipcRenderer.send('quit-app');
+  } else {
+    // 备用方案
+    window.close();
+  }
+}
+
 // 显示 API 无法访问弹窗
 function showApiUnavailableModal(errorInfo) {
   const modalHTML = `
@@ -540,7 +551,7 @@ function showApiUnavailableModal(errorInfo) {
             请检查您的网络连接后重新启动软件
           </p>
         </div>
-        <button onclick="window.close()" style="background: linear-gradient(180deg, #ff3b30 0%, #d32f2f 100%); color: white; border: none; padding: 12px 32px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(255, 59, 48, 0.3);">
+        <button onclick="quitApplication()" style="background: linear-gradient(180deg, #ff3b30 0%, #d32f2f 100%); color: white; border: none; padding: 12px 32px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(255, 59, 48, 0.3); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(255, 59, 48, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(255, 59, 48, 0.3)'">
           退出软件
         </button>
       </div>

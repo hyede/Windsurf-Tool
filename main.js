@@ -322,14 +322,22 @@ app.whenReady().then(async () => {
   createWindow();
 });
 
+// 监听退出应用请求
+ipcMain.on('quit-app', () => {
+  console.log('📢 收到退出应用请求');
+  app.quit();
+});
+
 app.on('window-all-closed', () => {
-  // 清理版本检查定时器
-  if (versionManager) {
-    versionManager.stopAutoCheck();
+  // 清理定时器
+  if (versionCheckInterval) {
+    clearInterval(versionCheckInterval);
   }
   
-  // 清理IPC监听器
+  // 清理所有 IPC 监听器
+  ipcMain.removeAllListeners('check-version');
   ipcMain.removeAllListeners('set-force-update-status');
+  ipcMain.removeAllListeners('quit-app');
   
   if (process.platform !== 'darwin') {
     app.quit();
