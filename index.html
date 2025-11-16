@@ -1,0 +1,3653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; style-src 'self' 'unsafe-inline' *; frame-src *; img-src * data:; connect-src *; font-src *;">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <title>Windsurf-Tool 4.0.0</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+      background: #f0f0f5;
+      font-size: 13px;
+      color: #1d1d1f;
+      line-height: 1.47059;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .app-container {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* 左侧导航栏 */
+    .sidebar {
+      width: 240px;
+      background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+      border-right: 1px solid #e5e5ea;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .sidebar-header {
+      padding: 20px;
+      border-bottom: 1px solid #e5e5ea;
+    }
+
+    .app-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .app-logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #007aff, #5ac8fa);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .app-logo-text {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1d1d1f;
+      line-height: 1;
+    }
+
+    .app-version {
+      font-size: 11px;
+      color: #86868b;
+      padding-left: 48px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .free-badge {
+      background: linear-gradient(135deg, #34c759, #30d158);
+      color: white;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: 0.5px;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 12px 8px;
+      overflow-y: auto;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      margin-bottom: 4px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: #1d1d1f;
+      font-size: 13px;
+      font-weight: 400;
+      border: none;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+    }
+
+    .nav-item:hover {
+      background: #f5f5f7;
+    }
+
+    .nav-item.active {
+      background: #007aff;
+      color: white;
+      font-weight: 500;
+    }
+
+    .nav-item-icon {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .nav-item.active .nav-item-icon {
+      color: white;
+    }
+
+
+    .sidebar-footer {
+      padding: 16px;
+      background: #fafafa;
+    }
+
+    .footer-links {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .footer-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #007aff;
+      text-decoration: none;
+      padding: 6px 8px;
+      border-radius: 6px;
+      transition: background 0.2s ease;
+      border: none;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .footer-link:hover {
+      background: #f5f5f7;
+    }
+
+    .footer-link-icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* 右侧主内容区 */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+      overflow: hidden;
+    }
+
+    .content-header {
+      padding: 24px 32px;
+      border-bottom: 1px solid #e5e5ea;
+      background: #fafafa;
+    }
+
+    .content-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #1d1d1f;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .content-title-icon {
+      width: 28px;
+      height: 28px;
+      color: #007aff;
+    }
+
+    .content-subtitle {
+      font-size: 13px;
+      color: #86868b;
+      line-height: 1.5;
+    }
+
+    .content-body {
+      flex: 1;
+      padding: 24px 32px;
+      overflow-y: auto;
+    }
+
+    .view-content {
+      display: none;
+    }
+
+    .view-content.active {
+      display: block;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      font-weight: 500;
+      font-size: 13px;
+      color: #1d1d1f;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d2d2d7;
+      border-radius: 6px;
+      font-size: 13px;
+      background: #ffffff;
+      font-family: inherit;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #007aff;
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+    }
+
+    .btn {
+      padding: 7px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 400;
+      cursor: pointer;
+      margin-right: 8px;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: #007aff;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #0051d5;
+    }
+
+    .btn-primary:active {
+      background: #004fc4;
+    }
+
+    .btn-danger {
+      background: #ff3b30;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #e6342a;
+    }
+
+    .btn-danger:active {
+      background: #cc2e24;
+    }
+
+    .btn-success {
+      background: #34c759;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #2fb350;
+    }
+
+    .btn-success:active {
+      background: #2a9f47;
+    }
+
+    .btn-warning {
+      background: #ff9500;
+      color: white;
+    }
+
+    .btn-warning:hover {
+      background: #e68600;
+    }
+
+    .btn-warning:active {
+      background: #cc7700;
+    }
+
+
+    /* 账号列表 - 卡片容器设计 */
+    .accounts-grid {
+      width: 100%;
+      margin-top: 16px;
+      max-height: calc(100vh - 300px);
+      overflow-y: auto;
+      overflow-x: auto;
+      border: 1px solid #e5e5ea;
+      border-radius: 12px;
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .account-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 12px;
+      transition: all 0.15s ease;
+      min-height: 40px;
+      background: transparent;
+    }
+
+    .account-item:last-child {
+      border-bottom: none;
+    }
+
+    .account-item:hover {
+      background: #f9f9fb;
+    }
+
+    .account-item.header {
+      background: #fafafa;
+      font-weight: 600;
+      color: #6e6e73;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid #e5e5ea;
+      border-radius: 12px 12px 0 0;
+      padding: 12px 16px;
+      min-height: 44px;
+    }
+
+    .account-item.header:hover {
+      background: #fafafa;
+    }
+
+    /* 列定义 */
+    .acc-col {
+      padding: 0 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+    }
+
+    .acc-col-index {
+      width: 40px;
+      flex-shrink: 0;
+      color: #86868b;
+      font-weight: 500;
+      justify-content: center;
+      font-size: 12px;
+    }
+
+    .acc-col-email {
+      width: 200px;
+      flex-shrink: 0;
+      color: #1d1d1f;
+      font-weight: 500;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .acc-col-email:hover {
+      color: #007aff;
+    }
+
+    .acc-col-password {
+      width: 110px;
+      flex-shrink: 0;
+      gap: 4px;
+    }
+
+    .password-display {
+      font-family: 'SF Mono', Monaco, monospace;
+      color: #6e6e73;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .password-display:hover {
+      color: #1d1d1f;
+    }
+
+    .password-toggle {
+      background: none;
+      border: none;
+      padding: 2px;
+      cursor: pointer;
+      color: #86868b;
+      display: flex;
+      align-items: center;
+      border-radius: 3px;
+    }
+
+    .password-toggle:hover {
+      background: #e8e8ed;
+      color: #1d1d1f;
+    }
+
+    .acc-col-type {
+      width: 55px;
+      flex-shrink: 0;
+      justify-content: center;
+      font-size: 11px;
+      color: #6e6e73;
+      font-weight: 500;
+    }
+
+    .acc-col-credits {
+      width: 65px;
+      flex-shrink: 0;
+      justify-content: flex-end;
+      font-weight: 500;
+      color: #1d1d1f;
+      font-variant-numeric: tabular-nums;
+      font-size: 13px;
+    }
+
+    .acc-col-usage {
+      width: 65px;
+      flex-shrink: 0;
+      justify-content: flex-end;
+      font-weight: 500;
+      color: #1d1d1f;
+      font-variant-numeric: tabular-nums;
+      font-size: 13px;
+    }
+
+    .acc-col-expiry {
+      width: 90px;
+      flex-shrink: 0;
+      color: #6e6e73;
+      font-size: 11px;
+    }
+
+    .acc-col-status {
+      width: 75px;
+      flex-shrink: 0;
+      justify-content: center;
+      font-weight: 500;
+      font-size: 11px;
+    }
+
+    .acc-col-actions {
+      flex: 1;
+      display: flex;
+      gap: 4px;
+      justify-content: flex-end;
+      padding-right: 4px;
+    }
+
+    /* 操作按钮 - 紧凑设计 */
+    .acc-btn {
+      padding: 4px 8px;
+      border: none;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      white-space: nowrap;
+    }
+
+    .acc-btn-icon {
+      padding: 3px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      position: relative;
+    }
+
+    .acc-btn-icon:hover {
+      background: #e8e8ed;
+    }
+
+    .acc-btn-icon:active {
+      background: #d1d1d6;
+    }
+
+    /* Tooltip 提示 */
+    .acc-btn-icon[data-tooltip]::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 4px);
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 5px 10px;
+      background: rgba(29, 29, 31, 0.95);
+      color: white;
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+      border-radius: 6px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .acc-btn-icon[data-tooltip]:hover::after {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-4px);
+    }
+
+    .acc-btn-primary {
+      background: #007aff;
+      color: white;
+    }
+
+    .acc-btn-primary:hover {
+      background: #0051d5;
+    }
+
+    .acc-btn-primary:active {
+      background: #004fc4;
+    }
+
+    .acc-btn-secondary {
+      background: #f5f5f7;
+      color: #1d1d1f;
+      border: 1px solid #d1d1d6;
+    }
+
+    .acc-btn-secondary:hover {
+      background: #e8e8ed;
+    }
+
+    .acc-btn-secondary:active {
+      background: #d1d1d6;
+    }
+
+    .acc-btn-danger {
+      background: transparent;
+      color: #ff3b30;
+    }
+
+    .acc-btn-danger:hover {
+      background: #fff5f5;
+    }
+
+    .acc-btn-danger:active {
+      background: #ffe5e5;
+    }
+
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      backdrop-filter: blur(4px);
+    }
+    
+    .modal-overlay.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.2s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+    
+    .modal-dialog {
+      background: #ffffff;
+      border-radius: 12px;
+      min-width: 400px;
+      max-width: 500px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      animation: slideUp 0.3s ease;
+    }
+    
+    @keyframes slideUp {
+      from {
+        transform: translateY(20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideDown {
+      from {
+        transform: translateX(-50%) translateY(-20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* 账号详情样式 */
+    .detail-section {
+      border: 1px solid #e5e5ea;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .detail-label {
+      font-size: 12px;
+      color: #86868b;
+      font-weight: 500;
+    }
+
+    .detail-value {
+      font-size: 14px;
+      color: #1d1d1f;
+      font-weight: 600;
+    }
+
+    /* 右键菜单样式 */
+    .context-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-size: 14px;
+      color: #1d1d1f;
+    }
+
+    .context-menu-item:hover {
+      background: #f5f5f7;
+    }
+
+    .context-menu-item:first-child {
+      border-radius: 8px 8px 0 0;
+    }
+
+    .context-menu-item:last-child {
+      border-radius: 0 0 8px 8px;
+    }
+
+    .context-menu-divider {
+      height: 1px;
+      background: #e5e5ea;
+      margin: 4px 0;
+    }
+
+    /* 现代化弹窗样式 */
+    .modern-modal {
+      overflow: hidden;
+    }
+
+    .modern-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid #e5e5ea;
+      background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
+    }
+
+    .modal-title-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1d1d1f;
+      margin: 0;
+    }
+
+    .modal-close-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: #86868b;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .modal-close-btn:hover {
+      background: #f5f5f7;
+      color: #1d1d1f;
+    }
+
+    .modern-modal-body {
+      padding: 24px;
+    }
+
+    .form-tip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px;
+      background: #f0f8ff;
+      border: 1px solid #d1e7ff;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #0066cc;
+      margin-top: 16px;
+    }
+
+    .modern-modal-footer {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      padding: 16px 24px;
+      border-top: 1px solid #e5e5ea;
+      background: #fafafa;
+    }
+
+    .btn-secondary {
+      background: #f5f5f7;
+      color: #1d1d1f;
+      border: 1px solid #d2d2d7;
+    }
+
+    .btn-secondary:hover {
+      background: #ebebf0;
+      border-color: #b8b8bd;
+    }
+
+    .modal-header {
+      font-size: 17px;
+      font-weight: 600;
+      color: #1d1d1f;
+      margin-bottom: 20px;
+    }
+    
+    .modal-footer {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e5e5ea;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: #007aff;
+      border-radius: 4px;
+      width: 0;
+    }
+
+    .status-message {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin: 16px 0;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .status-success {
+      background: #d1f2dd;
+      color: #1d7324;
+      border: 1px solid #a6e7b8;
+    }
+
+    .status-error {
+      background: #ffd9d6;
+      color: #c41e3a;
+      border: 1px solid #ffb3ad;
+    }
+
+    .status-info {
+      background: #d1e7ff;
+      color: #0040dd;
+      border: 1px solid #a6d0ff;
+    }
+
+    .domain-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .domain-tag {
+      background: #f5f5f7;
+      color: #1d1d1f;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid #e5e5ea;
+    }
+
+    .domain-tag:hover {
+      background: #ebebf0;
+    }
+
+    .domain-tag button {
+      background: none;
+      border: none;
+      color: #86868b;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 0;
+      line-height: 1;
+      transition: color 0.2s ease;
+    }
+
+    .domain-tag button:hover {
+      color: #1d1d1f;
+    }
+
+    h2 {
+      font-size: 17px;
+      font-weight: 600;
+      color: #1d1d1f;
+      margin-bottom: 16px;
+      margin-top: 24px;
+    }
+
+    h2:first-child {
+      margin-top: 0;
+    }
+
+    h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1d1d1f;
+      margin-bottom: 12px;
+      margin-top: 20px;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid #e5e5ea;
+      margin: 24px 0;
+    }
+
+    .action-bar {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 24px;
+      flex-wrap: nowrap;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+
+    .action-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .account-actions-group {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      margin-left: auto;
+    }
+
+    .divider {
+      width: 1px;
+      height: 24px;
+      background: #e5e5ea;
+      margin: 0 4px;
+    }
+
+    /* 批量注册面板 */
+    .batch-register-panel {
+      background: transparent;
+      border: none;
+      padding: 0;
+    }
+
+    .batch-register-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #1d1d1f;
+      margin-bottom: 16px;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .batch-register-controls {
+      display: flex;
+      gap: 16px;
+      align-items: flex-end;
+      flex-wrap: nowrap;
+    }
+
+    .input-field-group {
+      display: flex;
+      gap: 12px;
+      flex: 1;
+      min-width: 280px;
+    }
+
+    .input-field {
+      flex: 1;
+      min-width: 120px;
+    }
+
+    .input-field label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #6e6e73;
+      margin-bottom: 6px;
+    }
+
+    .input-field input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d1d1d6;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      background: white;
+    }
+
+    .input-field input:focus {
+      outline: none;
+      border-color: #007aff;
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+    }
+
+    .input-field input::placeholder {
+      color: #c7c7cc;
+    }
+
+    .batch-register-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-register {
+      min-width: auto;
+      padding: 8px 16px;
+      font-weight: 600;
+    }
+
+    .btn-cancel {
+      min-width: 120px;
+      font-weight: 600;
+    }
+
+    /* 正在开发页面 */
+    .coming-soon-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 500px;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .coming-soon-icon {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #e3f2fd 0%, #f0f8ff 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 32px;
+      color: #007aff;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.4);
+      }
+      50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 20px rgba(0, 122, 255, 0);
+      }
+    }
+
+    .coming-soon-title {
+      font-size: 32px;
+      font-weight: 700;
+      color: #1d1d1f;
+      margin-bottom: 12px;
+    }
+
+    .coming-soon-subtitle {
+      font-size: 16px;
+      color: #86868b;
+      margin-bottom: 40px;
+    }
+
+    .coming-soon-features {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-width: 400px;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      background: #f5f5f7;
+      border-radius: 10px;
+      font-size: 14px;
+      color: #1d1d1f;
+      transition: all 0.2s ease;
+    }
+
+    .feature-item:hover {
+      background: #ebebf0;
+      transform: translateX(4px);
+    }
+
+    .feature-item i {
+      color: #34c759;
+      flex-shrink: 0;
+    }
+
+    /* 系统设置页面 */
+    .settings-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      max-width: 100%;
+    }
+
+    .settings-card {
+      background: white;
+      border: 1px solid #e5e5ea;
+      border-radius: 10px;
+      padding: 0;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .settings-card:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .settings-card.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .settings-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 18px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+      border-bottom: 1px solid #e5e5ea;
+    }
+
+    .settings-card-header i {
+      color: #007aff;
+      flex-shrink: 0;
+    }
+
+    .settings-card-header h3 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+      color: #1d1d1f;
+    }
+
+    .settings-card-body {
+      padding: 18px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .settings-actions {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: center;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #e5e5ea;
+    }
+
+    .btn-large {
+      padding: 10px 28px;
+      font-size: 14px;
+      font-weight: 600;
+      min-width: 160px;
+    }
+    
+    .form-group {
+      margin-bottom: 12px;
+    }
+    
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+    
+    .form-group label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #1d1d1f;
+      margin-bottom: 6px;
+    }
+    
+    .form-group label i {
+      color: #86868b;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 8px 12px;
+      font-size: 13px;
+      border: 1px solid #d1d1d6;
+      border-radius: 6px;
+      background: white;
+      transition: all 0.2s ease;
+    }
+    
+    .form-group textarea {
+      min-height: 80px;
+      resize: vertical;
+      font-family: inherit;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #007aff;
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+    }
+    
+    .form-tip {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      font-size: 11px;
+      color: #86868b;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+    
+    .form-tip i {
+      color: #86868b;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* 批量注册弹窗 */
+    .register-modal {
+      max-width: 800px;
+      width: 90%;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .register-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid #e5e5ea;
+      background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
+    }
+
+    .register-modal-body {
+      padding: 24px;
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .register-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      padding: 12px;
+      background: #f5f5f7;
+      border-radius: 8px;
+    }
+
+    .register-stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: #86868b;
+      font-weight: 500;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1d1d1f;
+    }
+
+    .stat-value.success {
+      color: #34c759;
+    }
+
+    .stat-value.error {
+      color: #ff3b30;
+    }
+
+    .register-log-container {
+      flex: 1;
+      background: #1e1e1e;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #333;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .register-log {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+      font-size: 11px;
+      line-height: 1.6;
+      color: #d4d4d4;
+    }
+
+    .register-log::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .register-log::-webkit-scrollbar-track {
+      background: #2d2d2d;
+    }
+
+    .register-log::-webkit-scrollbar-thumb {
+      background: #555;
+      border-radius: 4px;
+    }
+
+    .register-log::-webkit-scrollbar-thumb:hover {
+      background: #666;
+    }
+
+    .log-entry {
+      margin-bottom: 4px;
+      word-wrap: break-word;
+    }
+
+    .log-timestamp {
+      color: #858585;
+      margin-right: 8px;
+    }
+
+    .log-info {
+      color: #4ec9b0;
+    }
+
+    .log-success {
+      color: #4ec9b0;
+    }
+
+    .log-error {
+      color: #f48771;
+    }
+
+    .log-warning {
+      color: #dcdcaa;
+    }
+
+    .register-modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      padding-top: 16px;
+      border-top: 1px solid #e5e5ea;
+    }
+
+    /* 下拉菜单 */
+    .dropdown-container {
+      position: relative;
+      display: inline-block;
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      background: white;
+      border: 1px solid #e5e5ea;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      min-width: 160px;
+      z-index: 1000;
+      display: none;
+      overflow: hidden;
+    }
+
+    .dropdown-menu.show {
+      display: block;
+    }
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      font-size: 13px;
+      color: #1d1d1f;
+    }
+
+    .dropdown-item:hover {
+      background: #f5f5f7;
+    }
+
+    .dropdown-item:active {
+      background: #ebebf0;
+    }
+
+    .dropdown-item i {
+      color: #007aff;
+    }
+
+    /* 版本更新弹窗响应式样式 */
+    @media (max-width: 768px) {
+      #versionUpdateModal .modal-dialog {
+        max-width: 95% !important;
+        margin: 10px !important;
+      }
+      
+      #versionUpdateModal .modal-dialog > div:last-child {
+        padding: 20px !important;
+      }
+      
+      #versionUpdateModal .modal-dialog .grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+      }
+    }
+
+    /* 版本更新弹窗特殊样式 */
+    #versionUpdateModal.modal-overlay {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+
+    .app-description {
+      font-size: 13px;
+      color: #6e6e73;
+      line-height: 1.5;
+    }
+
+    .stats-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #e5e5ea;
+      min-height: 100px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: linear-gradient(180deg, #007aff, #5ac8fa);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      border-color: #d2d2d7;
+    }
+
+    .stat-card:hover::before {
+      opacity: 1;
+    }
+
+    .stat-card:nth-child(1)::before {
+      background: linear-gradient(180deg, #007aff, #5ac8fa);
+    }
+
+    .stat-card:nth-child(2)::before {
+      background: linear-gradient(180deg, #34c759, #30d158);
+    }
+
+    .stat-card:nth-child(3)::before {
+      background: linear-gradient(180deg, #ff9500, #ffb340);
+    }
+
+    .stat-card:nth-child(4)::before {
+      background: linear-gradient(180deg, #ff3b30, #ff6b6b);
+    }
+
+    .stat-value {
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #1d1d1f, #6e6e73);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .stat-card:nth-child(1) .stat-value {
+      background: linear-gradient(135deg, #007aff, #5ac8fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .stat-card:nth-child(2) .stat-value {
+      background: linear-gradient(135deg, #34c759, #30d158);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .stat-card:nth-child(3) .stat-value {
+      background: linear-gradient(135deg, #ff9500, #ffb340);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .stat-card:nth-child(4) .stat-value {
+      background: linear-gradient(135deg, #ff3b30, #ff6b6b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: #86868b;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    .switch-accounts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 8px;
+      width: 100%;
+      max-height: 380px;
+      overflow-y: auto;
+      padding-right: 4px;
+      margin-top: 16px;
+    }
+
+    .used-accounts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 8px;
+      width: 100%;
+      max-height: 380px;
+      overflow-y: auto;
+      padding-right: 4px;
+      margin-top: 16px;
+    }
+
+    .switch-account-card {
+      background: #f5f5f7;
+      border: 1px solid #e5e5ea;
+      border-radius: 8px;
+      padding: 12px;
+      min-height: 88px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .switch-account-card:hover { 
+      background: #ebebf0;
+      border-color: #d2d2d7;
+    }
+
+    .used-account-card {
+      background: #ebebf0;
+      border: 1px solid #d2d2d7;
+      border-radius: 8px;
+      padding: 12px;
+      min-height: 88px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      position: relative;
+      opacity: 0.7;
+    }
+
+    .used-account-card:hover { 
+      background: #e0e0e5;
+      opacity: 1;
+    }
+    .switch-account-card .email,
+    .used-account-card .email { 
+      font-size: 12px; 
+      font-weight: 500; 
+      color: #1d1d1f; 
+      word-wrap: break-word; 
+      word-break: break-all;
+      line-height: 1.4;
+      padding-right: 48px;
+    }
+    .switch-account-card .badge,
+    .used-account-card .badge { 
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      padding: 3px 6px; 
+      border-radius: 4px; 
+      font-size: 10px; 
+      font-weight: 500;
+      color: #fff;
+      white-space: nowrap;
+    }
+    .switch-account-card .meta,
+    .used-account-card .meta { 
+      font-size: 11px; 
+      color: #86868b; 
+      line-height: 1.3;
+      margin-top: 6px;
+      word-wrap: break-word;
+    }
+
+    /* 教程页面样式 */
+    .tutorial-section {
+      margin-bottom: 32px;
+    }
+
+    .tutorial-card {
+      background: #f5f5f7;
+      border-radius: 8px;
+      padding: 20px;
+      border: 1px solid #e5e5ea;
+    }
+
+    .tutorial-step {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .tutorial-step:last-child {
+      margin-bottom: 0;
+    }
+
+    .step-number {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      background: #007aff;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .step-content h4 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1d1d1f;
+      margin-bottom: 8px;
+    }
+
+    .step-content p {
+      font-size: 13px;
+      color: #6e6e73;
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+    
+    .step-content ul {
+      margin: 8px 0;
+      padding-left: 20px;
+    }
+
+    .step-content li {
+      font-size: 13px;
+      color: #6e6e73;
+      margin-bottom: 4px;
+      line-height: 1.5;
+    }
+
+    .faq-item {
+      background: #ffffff;
+      border: 1px solid #e5e5ea;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+    }
+
+    .faq-question {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1d1d1f;
+      margin-bottom: 12px;
+    }
+
+    .faq-answer {
+      font-size: 13px;
+      color: #6e6e73;
+      line-height: 1.6;
+    }
+
+    .faq-answer p {
+      margin-bottom: 8px;
+    }
+
+    .faq-answer ul,
+    .faq-answer ol {
+      margin: 8px 0;
+      padding-left: 24px;
+    }
+
+    .faq-answer li {
+      margin-bottom: 6px;
+    }
+
+    .faq-answer code {
+      background: #f5f5f7;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 12px;
+    }
+
+    .tips-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+    }
+
+    .tip-card {
+      background: #ffffff;
+      border: 1px solid #e5e5ea;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .tip-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+    }
+
+    .tip-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1d1d1f;
+      margin-bottom: 8px;
+    }
+
+    .tip-content {
+      font-size: 13px;
+      color: #6e6e73;
+      line-height: 1.5;
+    }
+
+    .warning-box {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 8px;
+      padding: 16px 20px;
+    }
+
+    .warning-box ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .warning-box li {
+      font-size: 13px;
+      color: #856404;
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+
+    .contact-box {
+      background: #f5f5f7;
+      border: 1px solid #e5e5ea;
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    .contact-box p {
+      font-size: 13px;
+      color: #6e6e73;
+      line-height: 1.5;
+      margin-bottom: 0;
+    }
+
+    /* 滚动条样式 */
+    .content-body::-webkit-scrollbar,
+    .sidebar-nav::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .content-body::-webkit-scrollbar-track,
+    .sidebar-nav::-webkit-scrollbar-track {
+      background: #f5f5f7;
+    }
+
+    .content-body::-webkit-scrollbar-thumb,
+    .sidebar-nav::-webkit-scrollbar-thumb {
+      background: #d2d2d7;
+      border-radius: 4px;
+    }
+
+    .content-body::-webkit-scrollbar-thumb:hover,
+    .sidebar-nav::-webkit-scrollbar-thumb:hover {
+      background: #b8b8bd;
+    }
+
+    /* 按钮图标对齐 */
+    .btn svg {
+      flex-shrink: 0;
+    }
+
+    /* 悬浮操作按钮组 */
+    .float-actions {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      z-index: 100;
+    }
+
+    .float-btn {
+      width: 44px;
+      height: 44px;
+      border: none;
+      background: #ffffff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      position: relative;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .float-btn:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .float-btn:active {
+      transform: translateY(0) scale(0.95);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    .refresh-btn {
+      color: #007aff;
+    }
+
+    .refresh-btn:hover {
+      color: #0051d5;
+      background: #e3f2fd;
+    }
+
+    .delete-all-btn {
+      color: #ff3b30;
+    }
+
+    .delete-all-btn:hover {
+      color: #d32f2f;
+      background: #ffebee;
+    }
+
+    .save-btn {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      color: #34c759;
+    }
+
+    .save-btn:hover {
+      color: #30d158;
+      background: #e8f5e9;
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 1024px) {
+      .sidebar {
+        width: 200px;
+      }
+      
+      .action-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .divider {
+        display: none;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        left: -240px;
+        z-index: 1000;
+        transition: left 0.3s ease;
+      }
+      
+      .sidebar.open {
+        left: 0;
+      }
+      
+      .content-header {
+        padding: 16px 20px;
+      }
+      
+      .content-body {
+        padding: 16px 20px;
+      }
+    }
+  </style>
+  <script>
+    // 初始化全局变量
+    const { ipcRenderer } = require('electron');
+    // 将 ipcRenderer 设为全局变量，避免重复声明
+    window.ipcRenderer = ipcRenderer;
+  </script>
+  <script src="src/i18n.js"></script>
+  <script>
+    // 加载 ConfigManager 并设为全局变量
+    const ConfigManager = require('./js/configManager');
+    window.ConfigManager = ConfigManager;
+  </script>
+  <script src="js/resetMachine.js"></script>
+  <script src="js/filePathManager.js"></script>
+  <script src="js/domainManager.js"></script>
+  <script src="js/accountManager.js"></script>
+  <script src="js/accountQuery.js"></script>
+  <script src="js/accountSwitcher.js"></script>
+  <script src="js/currentAccountDetector.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- 左侧导航栏 -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="app-logo">
+          <div class="app-logo-icon">W</div>
+          <div class="app-logo-text">Windsurf Tool</div>
+        </div>
+        <div class="app-version">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span id="sidebarPlatformInfo" style="color: #86868b;">-</span>
+            <span>v4.0.0</span>
+          </div>
+          <span class="free-badge">免费使用</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" onclick="switchView('register')">
+          <i data-lucide="users" class="nav-item-icon"></i>
+          <span>账号管理</span>
+        </button>
+        <button class="nav-item" onclick="switchView('token')">
+          <i data-lucide="key" class="nav-item-icon"></i>
+          <span>Token管理</span>
+        </button>
+        <button class="nav-item" onclick="switchView('virtualcard')">
+          <i data-lucide="credit-card" class="nav-item-icon"></i>
+          <span>虚拟卡管理</span>
+        </button>
+        <button class="nav-item" onclick="switchView('reset')">
+          <i data-lucide="rotate-ccw" class="nav-item-icon"></i>
+          <span>重置机器ID</span>
+        </button>
+        <button class="nav-item" onclick="switchView('settings')">
+          <i data-lucide="settings" class="nav-item-icon"></i>
+          <span>系统设置</span>
+        </button>
+        <button class="nav-item" onclick="switchView('tutorial')">
+          <i data-lucide="book-open" class="nav-item-icon"></i>
+          <span>使用教程</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="footer-links">
+          <a href="https://github.com/crispvibe/Windsurf-Tool" class="footer-link" target="_blank">
+            <i data-lucide="github" class="footer-link-icon"></i>
+            <span>GitHub开源</span>
+          </a>
+          <button class="footer-link" onclick="openQQGroup()">
+            <i data-lucide="message-square" class="footer-link-icon"></i>
+            <span>反馈Bug</span>
+          </button>
+          <a href="https://qm.qq.com/q/1W3jvnDoak" class="footer-link" target="_blank">
+            <i data-lucide="message-circle" class="footer-link-icon"></i>
+            <span>QQ群：469028100</span>
+          </a>
+          <button class="footer-link" onclick="checkForUpdates()">
+            <i data-lucide="refresh-cw" class="footer-link-icon"></i>
+            <span>检查更新</span>
+          </button>
+          <button class="footer-link" onclick="openLanguageModal()">
+            <i data-lucide="languages" class="footer-link-icon"></i>
+            <span>语言设置</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 右侧主内容区 -->
+    <main class="main-content">
+      <div class="content-header">
+        <div class="content-title">
+          <i data-lucide="users" class="content-title-icon" id="viewTitleIcon"></i>
+          <span id="viewTitle">账号管理</span>
+        </div>
+        <div class="content-subtitle" id="viewSubtitle">批量注册和管理 Windsurf 账号</div>
+      </div>
+
+      <div class="content-body">
+        <!-- 账号管理视图 -->
+        <div id="register" class="view-content active" style="position: relative;">
+      <!-- 悬浮操作按钮 -->
+      <div class="float-actions">
+        <button class="float-btn refresh-btn" onclick="loadAccounts()" title="刷新列表">
+          <i data-lucide="refresh-cw" style="width: 20px; height: 20px;"></i>
+        </button>
+        <button class="float-btn delete-all-btn" onclick="deleteAllAccounts()" title="删除全部账号">
+          <i data-lucide="trash" style="width: 20px; height: 20px;"></i>
+        </button>
+      </div>
+      
+      <!-- 当前登录账号 -->
+      <div id="currentAccountInfo" style="display:none; margin-bottom:20px; padding:16px 20px; background:linear-gradient(135deg, #f0f8ff 0%, #e3f2fd 100%); border-radius:12px; border:1px solid #d1e7ff; box-shadow:0 2px 8px rgba(0, 122, 255, 0.08);">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg, #007aff, #5ac8fa); display:flex; align-items:center; justify-content:center; color:white; font-size:18px; font-weight:600; flex-shrink:0;">
+            <i data-lucide="user-check" style="width:22px; height:22px;"></i>
+          </div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:12px; color:#86868b; font-weight:500; margin-bottom:4px;">当前登录账号</div>
+            <div style="font-size:15px; color:#1d1d1f; font-weight:600; word-break:break-all;" id="currentAccountEmail">未登录</div>
+          </div>
+          <button onclick="refreshCurrentAccount()" style="background:rgba(0, 122, 255, 0.1); border:none; color:#007aff; padding:8px 16px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:500; display:inline-flex; align-items:center; gap:6px; transition:all 0.2s ease; flex-shrink:0;" onmouseover="this.style.background='rgba(0, 122, 255, 0.2)'" onmouseout="this.style.background='rgba(0, 122, 255, 0.1)'" title="刷新登录状态">
+            <i data-lucide="refresh-cw" style="width:14px; height:14px;"></i>
+            刷新
+          </button>
+        </div>
+      </div>
+      
+      <div id="accountStats" style="display:none; margin-bottom:24px;">
+        <div class="stats-container">
+          <div class="stat-card">
+            <div class="stat-value" id="totalCount">0</div>
+            <div class="stat-label" data-i18n="totalAccounts">总账号数</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="activeCount">0</div>
+            <div class="stat-label" data-i18n="activeAccounts">可用账号</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="warningCount">0</div>
+            <div class="stat-label" data-i18n="warningAccounts">即将到期</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="expiredCount">0</div>
+            <div class="stat-label" data-i18n="expiredAccounts">已到期</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <div class="batch-register-panel">
+          <div class="batch-register-header">
+            <i data-lucide="zap" style="width: 18px; height: 18px; color: #007aff;"></i>
+            <span>批量注册</span>
+          </div>
+          <div style="font-size: 11px; color: #86868b; margin-top: 4px; margin-bottom: 8px; line-height: 1.5;">
+            <i data-lucide="info" style="width: 12px; height: 12px; display: inline-block; vertical-align: middle;"></i>
+            Windows 版本使用微软浏览器，macOS 版本使用谷歌浏览器，请确保已下载对应浏览器
+          </div>
+          
+          <div class="batch-register-controls">
+            <div class="input-field-group">
+              <div class="input-field">
+                <label data-i18n="batchRegisterCount">
+                  <i data-lucide="hash" style="width: 14px; height: 14px;"></i>
+                  注册数量
+                </label>
+                <input type="number" id="registerCount" value="1" min="1" max="50" placeholder="1-50">
+              </div>
+              
+              <div class="input-field">
+                <label data-i18n="batchRegisterThreads">
+                  <i data-lucide="cpu" style="width: 14px; height: 14px;"></i>
+                  并发数
+                </label>
+                <input type="number" id="registerThreads" value="1" min="1" max="10" placeholder="1-10">
+              </div>
+            </div>
+            
+            <div class="batch-register-actions">
+              <button class="btn btn-primary btn-register" id="startBatchRegisterBtn" onclick="openBatchRegisterModal()" data-i18n="startBatchRegister">
+                <i data-lucide="play-circle" style="width: 18px; height: 18px;"></i>
+                开始注册
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="account-actions-group">
+          <div class="dropdown-container">
+            <button class="btn btn-primary" onclick="toggleAddAccountMenu(event)" id="addAccountBtn">
+              <i data-lucide="user-plus" style="width: 16px; height: 16px;"></i>
+              添加账号
+              <i data-lucide="chevron-down" style="width: 14px; height: 14px; margin-left: 4px;"></i>
+            </button>
+            <div class="dropdown-menu" id="addAccountMenu">
+              <div class="dropdown-item" onclick="showAddAccountForm(); hideAddAccountMenu();">
+                <i data-lucide="edit" style="width: 16px; height: 16px;"></i>
+                <span>手动添加</span>
+              </div>
+              <div class="dropdown-item" onclick="showImportAccountForm(); hideAddAccountMenu();">
+                <i data-lucide="upload" style="width: 16px; height: 16px;"></i>
+                <span>导入账号</span>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="exportAccounts()" data-i18n="exportAccounts">
+            <i data-lucide="download" style="width: 16px; height: 16px;"></i>
+            导出账号
+          </button>
+        </div>
+        
+      </div>
+
+      <div id="registerProgress" style="display:none; margin-top:12px;">
+        <div style="margin-bottom:8px; font-size:12px; color:#86868b; text-align:center;" id="progressText">0%</div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div id="registerStatus"></div>
+      </div>
+      
+      <div class="accounts-grid" id="accountsList"></div>
+    </div>
+
+    
+
+        <!-- Token管理视图 -->
+        <div id="token" class="view-content">
+          <div class="coming-soon-container">
+            <div class="coming-soon-icon">
+              <i data-lucide="key" style="width: 64px; height: 64px;"></i>
+            </div>
+            <h2 class="coming-soon-title">Token 管理已整合</h2>
+            <p class="coming-soon-subtitle">Token 管理功能已移至账号管理页面</p>
+            <div class="coming-soon-features">
+              <div class="feature-item">
+                <i data-lucide="arrow-right" style="width: 20px; height: 20px;"></i>
+                <span>在账号管理页面可以查看和复制 Token</span>
+              </div>
+              <div class="feature-item">
+                <i data-lucide="arrow-right" style="width: 20px; height: 20px;"></i>
+                <span>支持一键刷新账号 Token 信息</span>
+              </div>
+              <div class="feature-item">
+                <i data-lucide="arrow-right" style="width: 20px; height: 20px;"></i>
+                <span>自动切换账号并获取最新 Token</span>
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="switchView('register')" style="margin-top: 32px; padding: 10px 24px; font-size: 14px;">
+              <i data-lucide="users" style="width: 16px; height: 16px;"></i>
+              前往账号管理
+            </button>
+          </div>
+        </div>
+
+        <!-- 虚拟卡管理视图 -->
+        <div id="virtualcard" class="view-content">
+          <div class="coming-soon-container">
+            <div class="coming-soon-icon">
+              <i data-lucide="credit-card" style="width: 64px; height: 64px;"></i>
+            </div>
+            <h2 class="coming-soon-title">虚拟卡管理</h2>
+            <p class="coming-soon-subtitle">功能开发中，敬请期待...</p>
+            <div class="coming-soon-features">
+              <div class="feature-item">
+                <i data-lucide="check-circle" style="width: 20px; height: 20px;"></i>
+                <span>虚拟信用卡管理</span>
+              </div>
+              <div class="feature-item">
+                <i data-lucide="check-circle" style="width: 20px; height: 20px;"></i>
+                <span>自动绑定账号</span>
+              </div>
+              <div class="feature-item">
+                <i data-lucide="check-circle" style="width: 20px; height: 20px;"></i>
+                <span>支付记录查询</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 重置机器ID视图 -->
+        <div id="reset" class="view-content">
+          <div class="settings-container">
+            <!-- Windsurf重置 -->
+            <div class="settings-card">
+              <div class="settings-card-header">
+                <i data-lucide="wind" style="width: 18px; height: 18px;"></i>
+                <h3>Windsurf 重置</h3>
+              </div>
+              <div class="settings-card-body">
+                <p style="font-size: 13px; color: #6e6e73; margin-bottom: 12px; line-height: 1.6;">
+                  重置 Windsurf 编辑器的机器ID和设备指纹信息，包括：
+                </p>
+                <ul style="font-size: 12px; color: #86868b; margin: 0 0 16px 20px; line-height: 1.8;">
+                  <li>主机器ID (machineid 文件)</li>
+                  <li>遥测机器ID (telemetry.machineId)</li>
+                  <li>SQM ID (telemetry.sqmId)</li>
+                  <li>开发设备ID (telemetry.devDeviceId)</li>
+                  <li>服务机器ID (storage.serviceMachineId)</li>
+                </ul>
+                <div style="background: #f0f8ff; border: 1px solid #d1e7ff; padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+                  <p style="font-size: 12px; color: #007aff; margin: 0; line-height: 1.6;">
+                    <i data-lucide="info" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i>
+                    Windows 系统会自动检测安装路径并显示详细的配置文件位置
+                  </p>
+                </div>
+                <button class="btn btn-primary btn-large" onclick="resetWindsurfMachine()">
+                  <i data-lucide="rotate-ccw" style="width: 18px; height: 18px;"></i>
+                  开始重置 Windsurf
+                </button>
+              </div>
+            </div>
+
+            <!-- Cursor重置 -->
+            <div class="settings-card">
+              <div class="settings-card-header">
+                <i data-lucide="mouse-pointer-2" style="width: 18px; height: 18px;"></i>
+                <h3>Cursor 重置</h3>
+              </div>
+              <div class="settings-card-body">
+                <p style="font-size: 13px; color: #6e6e73; margin-bottom: 12px; line-height: 1.6;">
+                  重置 Cursor 编辑器的机器ID和设备指纹信息
+                </p>
+                <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+                  <p style="font-size: 12px; color: #856404; margin: 0; line-height: 1.6;">
+                    <i data-lucide="alert-triangle" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i>
+                    此功能正在开发中，敬请期待后续版本更新
+                  </p>
+                </div>
+                <button class="btn btn-secondary btn-large" onclick="resetCursorMachine()" disabled style="opacity: 0.6; cursor: not-allowed;">
+                  <i data-lucide="code" style="width: 18px; height: 18px;"></i>
+                  开发中
+                </button>
+              </div>
+            </div>
+
+            <!-- 日志输出区域 -->
+            <div class="settings-card full-width" id="resetLogCard" style="display: none;">
+              <div class="settings-card-header">
+                <i data-lucide="terminal" style="width: 18px; height: 18px;"></i>
+                <h3>操作日志</h3>
+              </div>
+              <div class="settings-card-body">
+                <div class="register-log-container" style="height: 300px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #2d2d2d; border-bottom: 1px solid #444;">
+                    <span style="color: #d4d4d4; font-size: 12px; font-weight: 600; letter-spacing: 0.5px;">实时日志</span>
+                    <button 
+                      onclick="copyResetLog()" 
+                      style="background: #007aff; border: none; color: white; padding: 6px 14px; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: 500; display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0, 122, 255, 0.3);"
+                      onmouseover="this.style.background='#0051d5'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 3px 6px rgba(0, 122, 255, 0.4)'"
+                      onmouseout="this.style.background='#007aff'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0, 122, 255, 0.3)'"
+                      title="复制全部日志到剪贴板">
+                      <i data-lucide="copy" style="width: 13px; height: 13px;"></i>
+                      复制日志
+                    </button>
+                  </div>
+                  <div class="register-log" id="resetLog"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 系统设置视图 -->
+        <div id="settings" class="view-content">
+          <div class="settings-container">
+            <!-- 邮箱域名配置 -->
+            <div class="settings-card">
+              <div class="settings-card-header">
+                <i data-lucide="mail" style="width: 18px; height: 18px;"></i>
+                <h3>邮箱域名配置</h3>
+              </div>
+              <div class="settings-card-body">
+                <div class="form-group">
+                  <label>
+                    <i data-lucide="globe" style="width: 14px; height: 14px;"></i>
+                    添加邮箱域名
+                  </label>
+                  <div style="position: relative;">
+                    <input 
+                      type="text" 
+                      id="domainInput" 
+                      placeholder="输入域名后按回车添加（例如：gmail.com）" 
+                      style="width: 100%; padding: 10px 12px; font-size: 13px; border: 1px solid #d1d1d6; border-radius: 6px;"
+                      onkeypress="handleDomainInputKeyPress(event)">
+                    <button 
+                      onclick="addDomain()" 
+                      style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); padding: 6px 12px; background: #007aff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
+                      <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+                      添加
+                    </button>
+                  </div>
+                  <div class="form-tip" style="margin-top: 8px;">
+                    <i data-lucide="info" style="width: 12px; height: 12px;"></i>
+                    <span>输入域名后按 <kbd style="padding: 2px 6px; background: #f5f5f7; border: 1px solid #d1d1d6; border-radius: 3px; font-family: monospace; font-size: 11px;">Enter</kbd> 或点击"添加"按钮</span>
+                  </div>
+                </div>
+
+                <!-- 已配置的域名列表 -->
+                <div class="form-group" style="margin-top: 20px;">
+                  <label>
+                    <i data-lucide="list" style="width: 14px; height: 14px;"></i>
+                    已配置的域名 (<span id="domainCount">0</span>)
+                  </label>
+                  <div id="domainTags" style="min-height: 40px; padding: 8px; background: white; border: 1px solid #d1d1d6; border-radius: 6px; display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start;">
+                    <div style="width: 100%; text-align: center; color: #86868b; font-size: 12px; padding: 12px 0;" id="emptyDomainHint">
+                      暂无配置的域名
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 密码配置 -->
+            <div class="settings-card">
+              <div class="settings-card-header">
+                <i data-lucide="lock" style="width: 18px; height: 18px;"></i>
+                <h3>密码配置</h3>
+              </div>
+              <div class="settings-card-body">
+                <div class="form-group">
+                  <label>
+                    <i data-lucide="key" style="width: 14px; height: 14px;"></i>
+                    密码生成方式
+                  </label>
+                  <select id="passwordMode" style="width: 100%; padding: 8px 12px; font-size: 13px; border: 1px solid #d1d1d6; border-radius: 6px; background: white;">
+                    <option value="email">使用账号作为密码</option>
+                    <option value="random">使用随机密码</option>
+                  </select>
+                  <div class="form-tip" style="margin-top: 6px;">
+                    <i data-lucide="info" style="width: 12px; height: 12px;"></i>
+                    <span>选择注册时使用的密码生成方式</span>
+                  </div>
+                </div>
+                
+                <div class="form-group" style="margin-top: 16px;">
+                  <label>
+                    <i data-lucide="clock" style="width: 14px; height: 14px;"></i>
+                    自动查询积分间隔
+                  </label>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <input 
+                      type="number" 
+                      id="queryInterval" 
+                      min="1" 
+                      max="1440"
+                      placeholder="5"
+                      style="flex: 1; padding: 8px 12px; font-size: 13px; border: 1px solid #d1d1d6; border-radius: 6px;"
+                    />
+                    <span style="color: #86868b; font-size: 13px; white-space: nowrap;">分钟</span>
+                  </div>
+                  <div class="form-tip" style="margin-top: 6px;">
+                    <i data-lucide="info" style="width: 12px; height: 12px;"></i>
+                    <span>自动查询账号积分的时间间隔（最低1分钟，最高1440分钟/24小时）</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- IMAP邮箱配置 -->
+            <div class="settings-card">
+              <div class="settings-card-header">
+                <i data-lucide="server" style="width: 18px; height: 18px;"></i>
+                <h3>IMAP 邮箱配置</h3>
+              </div>
+              <div class="settings-card-body">
+                <div class="settings-grid">
+                  <div class="form-group">
+                    <label>
+                      <i data-lucide="mail" style="width: 14px; height: 14px;"></i>
+                      QQ邮箱
+                    </label>
+                    <input type="email" id="imapUser" placeholder="your@qq.com">
+                  </div>
+                  
+                  <div class="form-group">
+                    <label>
+                      <i data-lucide="key" style="width: 14px; height: 14px;"></i>
+                      授权码
+                    </label>
+                    <div style="position: relative;">
+                      <input type="password" id="imapPassword" placeholder="请输入授权码" style="padding-right: 40px;">
+                      <button class="password-toggle-btn" onclick="toggleImapPassword()" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%);" title="显示/隐藏密码">
+                        <i data-lucide="eye" id="imapPasswordIcon" style="width: 16px; height: 16px;"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="form-tip">
+                  <i data-lucide="alert-circle" style="width: 12px; height: 12px;"></i>
+                  <span>密码为邮箱授权码，非登录密码（QQ邮箱需在设置-账户中开启IMAP并生成授权码）</span>
+                </div>
+                
+                <button class="btn btn-primary" onclick="testImap()" style="margin-top: 12px;">
+                  <i data-lucide="wifi" style="width: 14px; height: 14px;"></i>
+                  测试连接
+                </button>
+              </div>
+            </div>
+
+            <!-- 配置文件路径 -->
+            <div class="settings-card">
+              <div class="settings-card-header">
+                <i data-lucide="folder" style="width: 18px; height: 18px;"></i>
+                <h3>配置文件路径</h3>
+              </div>
+              <div class="settings-card-body">
+                <!-- 用户数据目录 -->
+                <div class="form-group">
+                  <label style="font-size: 12px;">
+                    <i data-lucide="folder" style="width: 12px; height: 12px;"></i>
+                    用户数据目录
+                  </label>
+                  <input type="text" id="userDataPath" readonly style="width: 100%; background: #f5f5f7; cursor: text; user-select: all; padding: 6px 10px; font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 11px; border: 1px solid #d1d1d6; border-radius: 4px;" placeholder="加载中...">
+                </div>
+
+                <!-- 配置文件 -->
+                <div class="form-group" style="margin-top: 12px;">
+                  <label style="font-size: 12px;">
+                    <i data-lucide="settings" style="width: 12px; height: 12px;"></i>
+                    配置文件
+                  </label>
+                  <input type="text" id="configFilePath" readonly style="width: 100%; background: #f5f5f7; cursor: text; user-select: all; padding: 6px 10px; font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 11px; border: 1px solid #d1d1d6; border-radius: 4px;" placeholder="加载中...">
+                </div>
+
+                <!-- 账号文件 -->
+                <div class="form-group" style="margin-top: 12px;">
+                  <label style="font-size: 12px;">
+                    <i data-lucide="users" style="width: 12px; height: 12px;"></i>
+                    账号文件
+                  </label>
+                  <input type="text" id="accountsFilePath" readonly style="width: 100%; background: #f5f5f7; cursor: text; user-select: all; padding: 6px 10px; font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 11px; border: 1px solid #d1d1d6; border-radius: 4px;" placeholder="加载中...">
+                </div>
+
+                <!-- 平台信息 -->
+                <div class="form-group" style="margin-top: 12px;">
+                  <label style="font-size: 12px;">
+                    <i data-lucide="monitor" style="width: 12px; height: 12px;"></i>
+                    当前平台
+                  </label>
+                  <div style="padding: 6px 10px; background: linear-gradient(135deg, #007aff, #5ac8fa); border-radius: 4px; color: white; font-weight: 500; font-size: 12px; text-align: center;">
+                    <span id="platformInfo">加载中...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="settingsStatus"></div>
+          </div>
+          
+          <!-- 悬浮保存按钮 -->
+          <button class="float-btn save-btn" onclick="saveSettings()" title="保存所有配置" style="display: none;">
+            <i data-lucide="save" style="width: 20px; height: 20px;"></i>
+          </button>
+        </div>
+
+        <!-- 使用教程视图 -->
+        <div id="tutorial" class="view-content">
+          <div class="settings-container">
+            <!-- 系统和浏览器要求 -->
+            <div class="settings-card">
+              <div class="settings-card-header">
+                <i data-lucide="monitor" style="width: 20px; height: 20px; color: #007aff;"></i>
+                <h3>系统和浏览器要求</h3>
+              </div>
+              <div class="settings-card-body">
+                <div style="background: linear-gradient(135deg, #f0f8ff 0%, #e3f2fd 100%); padding: 20px; border-radius: 12px; border: 1px solid #d1e7ff; margin-bottom: 20px;">
+                  <h4 style="font-size: 15px; font-weight: 600; color: #1d1d1f; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="chrome" style="width: 18px; height: 18px; color: #007aff;"></i>
+                    浏览器要求
+                  </h4>
+                  <div style="font-size: 13px; color: #6e6e73; line-height: 1.8; margin-bottom: 12px;">
+                    <div style="margin-bottom: 8px;">
+                      <strong style="color: #1d1d1f;">Windows 版本：</strong>使用 <span style="color: #007aff; font-weight: 600;">Microsoft Edge 90+</span>（系统预装，推荐）
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                      <strong style="color: #1d1d1f;">macOS 版本：</strong>使用 <span style="color: #007aff; font-weight: 600;">Google Chrome 90+</span>
+                    </div>
+                    <div style="padding: 10px 12px; background: #fff; border-radius: 8px; border-left: 3px solid #ff9500; margin-top: 12px;">
+                      <i data-lucide="alert-triangle" style="width: 14px; height: 14px; color: #ff9500; display: inline-block; vertical-align: middle; margin-right: 6px;"></i>
+                      <span style="color: #ff9500; font-weight: 600;">重要提示：</span>
+                      <span style="color: #6e6e73;">不支持旧版 Edge（2020年前的 EdgeHTML 版本），推荐使用最新版本以获得最佳体验</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="background: linear-gradient(135deg, #fff9e6 0%, #fff4d6 100%); padding: 20px; border-radius: 12px; border: 1px solid #ffe4a3;">
+                  <h4 style="font-size: 15px; font-weight: 600; color: #1d1d1f; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="laptop" style="width: 18px; height: 18px; color: #ff9500;"></i>
+                    系统要求
+                  </h4>
+                  <div style="font-size: 13px; color: #6e6e73; line-height: 1.8;">
+                    <div style="margin-bottom: 8px;">
+                      <strong style="color: #1d1d1f;">Windows：</strong>Windows 10/11（64位）
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                      <strong style="color: #1d1d1f;">macOS：</strong>macOS 10.13+ (支持 Intel 和 Apple Silicon)
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 快速开始 -->
+            <div class="settings-card">
+              <div class="settings-card-header">
+                <i data-lucide="rocket" style="width: 20px; height: 20px; color: #34c759;"></i>
+                <h3>快速开始</h3>
+              </div>
+              <div class="settings-card-body">
+                <div style="display: grid; gap: 16px;">
+                  <div style="padding: 16px; background: #f5f5f7; border-radius: 10px; border-left: 4px solid #007aff;">
+                    <div style="font-size: 14px; font-weight: 600; color: #1d1d1f; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                      <i data-lucide="user-plus" style="width: 16px; height: 16px; color: #007aff;"></i>
+                      批量注册账号
+                    </div>
+                    <div style="font-size: 13px; color: #6e6e73; line-height: 1.6;">
+                      在账号管理页面点击"批量注册"按钮，设置注册数量，系统会自动打开浏览器完成注册流程
+                    </div>
+                  </div>
+
+                  <div style="padding: 16px; background: #f5f5f7; border-radius: 10px; border-left: 4px solid #34c759;">
+                    <div style="font-size: 14px; font-weight: 600; color: #1d1d1f; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                      <i data-lucide="download" style="width: 16px; height: 16px; color: #34c759;"></i>
+                      导入已有账号
+                    </div>
+                    <div style="font-size: 13px; color: #6e6e73; line-height: 1.6;">
+                      点击"添加账号"手动输入邮箱和密码，或点击"导入账号"批量导入 JSON 文件
+                    </div>
+                  </div>
+
+                  <div style="padding: 16px; background: #f5f5f7; border-radius: 10px; border-left: 4px solid #ff9500;">
+                    <div style="font-size: 14px; font-weight: 600; color: #1d1d1f; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                      <i data-lucide="key" style="width: 16px; height: 16px; color: #ff9500;"></i>
+                      获取 Token
+                    </div>
+                    <div style="font-size: 13px; color: #6e6e73; line-height: 1.6;">
+                      导入的账号点击"获取 Token"按钮，系统会自动登录并获取完整的 Token 信息
+                    </div>
+                  </div>
+
+                  <div style="padding: 16px; background: #f5f5f7; border-radius: 10px; border-left: 4px solid #ff3b30;">
+                    <div style="font-size: 14px; font-weight: 600; color: #1d1d1f; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                      <i data-lucide="repeat" style="width: 16px; height: 16px; color: #ff3b30;"></i>
+                      切换账号
+                    </div>
+                    <div style="font-size: 13px; color: #6e6e73; line-height: 1.6;">
+                      点击账号列表中的"切换账号"按钮，系统会自动将账号切换到 Windsurf 编辑器
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 邮箱配置教程 -->
+            <div class="settings-card">
+              <div class="settings-card-header">
+                <i data-lucide="mail" style="width: 20px; height: 20px; color: #007aff;"></i>
+                <h3>邮箱配置教程</h3>
+              </div>
+              <div class="settings-card-body">
+                <!-- QQ邮箱配置 -->
+                <div style="background: linear-gradient(135deg, #f0f8ff 0%, #e3f2fd 100%); padding: 20px; border-radius: 12px; border: 1px solid #d1e7ff; margin-bottom: 20px;">
+                  <h4 style="font-size: 15px; font-weight: 600; color: #1d1d1f; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="mail-check" style="width: 18px; height: 18px; color: #007aff;"></i>
+                    QQ 邮箱配置
+                  </h4>
+                  <div style="font-size: 13px; color: #6e6e73; line-height: 1.8;">
+                    <div style="margin-bottom: 12px;">
+                      <strong style="color: #1d1d1f;">1. 开启 IMAP/SMTP 服务</strong>
+                      <div style="padding-left: 16px; margin-top: 4px;">
+                        • 登录 QQ 邮箱网页版<br>
+                        • 进入"设置" → "账户" → "POP3/IMAP/SMTP/Exchange/CardDAV/CalDAV服务"<br>
+                        • 开启"IMAP/SMTP服务"<br>
+                        • 生成授权码（用于登录，不是 QQ 密码）
+                      </div>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                      <strong style="color: #1d1d1f;">2. 在系统设置中配置</strong>
+                      <div style="padding-left: 16px; margin-top: 4px;">
+                        • IMAP 服务器：<code style="background: #fff; padding: 2px 6px; border-radius: 4px; color: #007aff;">imap.qq.com</code><br>
+                        • IMAP 端口：<code style="background: #fff; padding: 2px 6px; border-radius: 4px; color: #007aff;">993</code><br>
+                        • 邮箱账号：<code style="background: #fff; padding: 2px 6px; border-radius: 4px; color: #007aff;">your@qq.com</code><br>
+                        • 邮箱密码：<code style="background: #fff; padding: 2px 6px; border-radius: 4px; color: #007aff;">授权码</code>（不是 QQ 密码）
+                      </div>
+                    </div>
+                    <div style="padding: 10px 12px; background: #fff; border-radius: 8px; border-left: 3px solid #007aff; margin-top: 12px;">
+                      <i data-lucide="info" style="width: 14px; height: 14px; color: #007aff; display: inline-block; vertical-align: middle; margin-right: 6px;"></i>
+                      <span style="color: #007aff; font-weight: 600;">提示：</span>
+                      <span style="color: #6e6e73;">授权码是 QQ 邮箱生成的 16 位密码，用于第三方客户端登录</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Cloudflare 邮箱转发配置 -->
+                <div style="background: linear-gradient(135deg, #f0fff4 0%, #e6f7ed 100%); padding: 20px; border-radius: 12px; border: 1px solid #c6f6d5;">
+                  <h4 style="font-size: 15px; font-weight: 600; color: #1d1d1f; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="cloud" style="width: 18px; height: 18px; color: #34c759;"></i>
+                    Cloudflare 邮箱转发配置
+                  </h4>
+                  <div style="font-size: 13px; color: #6e6e73; line-height: 1.8;">
+                    <div style="margin-bottom: 12px;">
+                      <strong style="color: #1d1d1f;">步骤 1：添加域名到 Cloudflare</strong>
+                      <div style="padding-left: 16px; margin-top: 4px;">
+                        • 登录 <a href="https://dash.cloudflare.com" target="_blank" style="color: #007aff;">Cloudflare 控制台</a><br>
+                        • 点击"添加站点"，输入你的域名<br>
+                        • 选择免费计划，按提示修改域名 DNS 服务器
+                      </div>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                      <strong style="color: #1d1d1f;">步骤 2：配置邮箱路由</strong>
+                      <div style="padding-left: 16px; margin-top: 4px;">
+                        • 进入域名管理页面<br>
+                        • 点击"电子邮件" → "电子邮件路由"<br>
+                        • 启用邮箱路由功能<br>
+                        • 添加目标地址（你的 QQ 邮箱）
+                      </div>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                      <strong style="color: #1d1d1f;">步骤 3：设置全域转发（重要）</strong>
+                      <div style="padding-left: 16px; margin-top: 4px;">
+                        • 在"路由规则"中点击"全部捕获"<br>
+                        • 操作选择"发送到电子邮件"<br>
+                        • 目标地址填写你的 QQ 邮箱<br>
+                        • 这样 <code style="background: #fff; padding: 2px 6px; border-radius: 4px; color: #34c759;">任意前缀@你的域名</code> 都会转发到 QQ 邮箱
+                      </div>
+                    </div>
+                    <div style="padding: 10px 12px; background: #fff; border-radius: 8px; border-left: 3px solid #34c759; margin-top: 12px;">
+                      <i data-lucide="check-circle" style="width: 14px; height: 14px; color: #34c759; display: inline-block; vertical-align: middle; margin-right: 6px;"></i>
+                      <span style="color: #34c759; font-weight: 600;">完成：</span>
+                      <span style="color: #6e6e73;">现在所有发送到 xxx@你的域名 的邮件都会自动转发到你的 QQ 邮箱</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 常见问题与虚拟卡原理 -->
+            <div class="settings-card">
+              <div class="settings-card-header">
+                <i data-lucide="help-circle" style="width: 20px; height: 20px; color: #ff9500;"></i>
+                <h3>常见问题</h3>
+              </div>
+              <div class="settings-card-body">
+                <!-- 常见问题 -->
+                <div style="display: grid; gap: 12px; margin-bottom: 20px;">
+                  <div style="padding: 12px; background: #f5f5f7; border-radius: 8px;">
+                    <div style="font-size: 13px; font-weight: 600; color: #1d1d1f; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                      <i data-lucide="chrome" style="width: 14px; height: 14px; color: #007aff;"></i>
+                      浏览器无法启动？
+                    </div>
+                    <div style="font-size: 12px; color: #6e6e73; padding-left: 22px;">
+                      确保已安装对应浏览器（Windows 用 Edge 90+，macOS 用 Chrome 90+）
+                    </div>
+                  </div>
+
+                  <div style="padding: 12px; background: #f5f5f7; border-radius: 8px;">
+                    <div style="font-size: 13px; font-weight: 600; color: #1d1d1f; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                      <i data-lucide="key" style="width: 14px; height: 14px; color: #ff9500;"></i>
+                      获取 Token 失败？
+                    </div>
+                    <div style="font-size: 12px; color: #6e6e73; padding-left: 22px;">
+                      检查账号密码是否正确，如有验证码请手动完成
+                    </div>
+                  </div>
+
+                  <div style="padding: 12px; background: #f5f5f7; border-radius: 8px;">
+                    <div style="font-size: 13px; font-weight: 600; color: #1d1d1f; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                      <i data-lucide="clock" style="width: 14px; height: 14px; color: #34c759;"></i>
+                      到期时间不准确？
+                    </div>
+                    <div style="font-size: 12px; color: #6e6e73; padding-left: 22px;">
+                      点击"刷新积分"按钮获取真实到期时间
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 域名生成原理 -->
+                <div style="background: linear-gradient(135deg, #fff9e6 0%, #fff4d6 100%); padding: 20px; border-radius: 12px; border: 1px solid #ffe4a3; margin-bottom: 20px;">
+                  <h4 style="font-size: 15px; font-weight: 600; color: #1d1d1f; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="globe" style="width: 18px; height: 18px; color: #ff9500;"></i>
+                    域名生成原理
+                  </h4>
+                  <div style="font-size: 13px; color: #6e6e73; line-height: 1.8;">
+                    <div style="margin-bottom: 12px;">
+                      <strong style="color: #1d1d1f;">邮箱地址格式：</strong>
+                      <code style="background: #fff; padding: 4px 8px; border-radius: 4px; color: #ff9500; display: inline-block; margin-top: 4px;">随机字符串@配置的域名</code>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                      <strong style="color: #1d1d1f;">生成逻辑：</strong>
+                      <div style="padding-left: 16px; margin-top: 4px;">
+                        1. 系统从配置的域名列表中<strong>随机选择</strong>一个域名<br>
+                        2. 生成 10 位<strong>随机字符串</strong>（小写字母+数字）<br>
+                        3. 组合成完整邮箱地址：<code style="background: #fff; padding: 2px 6px; border-radius: 4px; color: #ff9500;">abc123defg@example.com</code><br>
+                        4. 通过 Cloudflare 邮箱转发接收验证码
+                      </div>
+                    </div>
+                    <div style="padding: 10px 12px; background: #fff; border-radius: 8px; border-left: 3px solid #ff9500; margin-top: 12px;">
+                      <i data-lucide="lightbulb" style="width: 14px; height: 14px; color: #ff9500; display: inline-block; vertical-align: middle; margin-right: 6px;"></i>
+                      <span style="color: #ff9500; font-weight: 600;">优势：</span>
+                      <span style="color: #6e6e73;">每个账号使用不同的随机邮箱，避免被检测为批量注册</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 购买域名教程 -->
+                <div style="background: linear-gradient(135deg, #fff0f6 0%, #ffe6f0 100%); padding: 20px; border-radius: 12px; border: 1px solid #ffc9dd; margin-bottom: 20px;">
+                  <h4 style="font-size: 15px; font-weight: 600; color: #1d1d1f; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="shopping-cart" style="width: 18px; height: 18px; color: #ff3b30;"></i>
+                    购买域名教程
+                  </h4>
+                  <div style="font-size: 13px; color: #6e6e73; line-height: 1.8;">
+                    <div style="margin-bottom: 12px;">
+                      <strong style="color: #1d1d1f;">推荐渠道：阿里云（万网）</strong>
+                      <div style="padding-left: 16px; margin-top: 4px;">
+                        • 访问 <a href="https://wanwang.aliyun.com/domain" target="_blank" style="color: #007aff;">阿里云域名注册</a><br>
+                        • 搜索你想要的域名（任意域名都可以）<br>
+                        • 选择 <code style="background: #fff; padding: 2px 6px; border-radius: 4px; color: #ff3b30;">.xyz</code> 或 <code style="background: #fff; padding: 2px 6px; border-radius: 4px; color: #ff3b30;">.top</code> 等便宜后缀<br>
+                        • 首年价格通常只需 <strong style="color: #ff3b30;">1-5 元</strong>
+                      </div>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                      <strong style="color: #1d1d1f;">购买步骤：</strong>
+                      <div style="padding-left: 16px; margin-top: 4px;">
+                        1. 注册/登录阿里云账号<br>
+                        2. 搜索域名，选择便宜的后缀（.xyz、.top、.site 等）<br>
+                        3. 加入购物车，完成实名认证<br>
+                        4. 支付购买（首年 1-5 元）<br>
+                        5. 等待实名审核通过（通常 1-24 小时）
+                      </div>
+                    </div>
+                    <div style="padding: 10px 12px; background: #fff; border-radius: 8px; border-left: 3px solid #ff3b30; margin-top: 12px;">
+                      <i data-lucide="tag" style="width: 14px; height: 14px; color: #ff3b30; display: inline-block; vertical-align: middle; margin-right: 6px;"></i>
+                      <span style="color: #ff3b30; font-weight: 600;">省钱技巧：</span>
+                      <span style="color: #6e6e73;">选择 .xyz、.top、.site 等后缀，首年只需 1-5 元。域名内容随意，只要能用于邮箱转发即可</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 虚拟卡注册 Pro 原理 -->
+                <div style="background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); padding: 20px; border-radius: 12px; border: 1px solid #ddd6fe;">
+                  <h4 style="font-size: 15px; font-weight: 600; color: #1d1d1f; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="credit-card" style="width: 18px; height: 18px; color: #5856d6;"></i>
+                    虚拟卡注册 Pro 账号原理
+                  </h4>
+                  <div style="font-size: 13px; color: #6e6e73; line-height: 1.8;">
+                    <div style="margin-bottom: 12px;">
+                      <strong style="color: #1d1d1f;">Windsurf Pro 订阅机制：</strong>
+                      <div style="padding-left: 16px; margin-top: 4px;">
+                        • Windsurf 提供 <strong>14 天免费试用</strong> Pro 功能<br>
+                        • 需要绑定信用卡才能激活试用<br>
+                        • 试用期间可以使用所有 Pro 功能<br>
+                        • 试用结束后才会扣费
+                      </div>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                      <strong style="color: #1d1d1f;">虚拟卡的作用：</strong>
+                      <div style="padding-left: 16px; margin-top: 4px;">
+                        1. 使用虚拟卡绑定账号，激活 14 天试用<br>
+                        2. 虚拟卡余额为 <code style="background: #fff; padding: 2px 6px; border-radius: 4px; color: #5856d6;">0 美元</code>，无法扣费<br>
+                        3. 试用期结束后，扣费失败，订阅自动取消<br>
+                        4. 账号降级为免费版，但<strong>试用期的使用记录保留</strong>
+                      </div>
+                    </div>
+                    <div style="padding: 10px 12px; background: #fff; border-radius: 8px; border-left: 3px solid #5856d6; margin-top: 12px;">
+                      <i data-lucide="shield-check" style="width: 14px; height: 14px; color: #5856d6; display: inline-block; vertical-align: middle; margin-right: 6px;"></i>
+                      <span style="color: #5856d6; font-weight: 600;">合规性：</span>
+                      <span style="color: #6e6e73;">这是利用官方提供的免费试用政策，不涉及盗刷或欺诈行为</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 批量注册弹窗 -->
+  <div id="batchRegisterModal" class="modal-overlay" style="display:none;">
+    <div class="modal-dialog register-modal" onclick="event.stopPropagation()">
+      <div class="register-modal-header">
+        <div class="modal-title-row">
+          <i data-lucide="zap" style="width: 24px; height: 24px; color: #007aff;"></i>
+          <h3 class="modal-title">批量注册</h3>
+        </div>
+        <button class="modal-close-btn" onclick="closeBatchRegisterModal()" title="关闭">
+          <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        </button>
+      </div>
+      
+      <div class="register-modal-body">
+        <!-- 注册统计信息 -->
+        <div class="register-stats">
+          <div class="register-stat-item">
+            <span class="stat-label">总数量:</span>
+            <span class="stat-value" id="modalTotalCount">0</span>
+          </div>
+          <div class="register-stat-item">
+            <span class="stat-label">成功:</span>
+            <span class="stat-value success" id="modalSuccessCount">0</span>
+          </div>
+          <div class="register-stat-item">
+            <span class="stat-label">失败:</span>
+            <span class="stat-value error" id="modalFailCount">0</span>
+          </div>
+          <div class="register-stat-item">
+            <span class="stat-label">进度:</span>
+            <span class="stat-value" id="modalProgress">0%</span>
+          </div>
+        </div>
+        
+        <!-- 日志显示区域 -->
+        <div class="register-log-container">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #2d2d2d; border-bottom: 1px solid #444;">
+            <span style="color: #d4d4d4; font-size: 12px; font-weight: 600; letter-spacing: 0.5px;">实时日志</span>
+            <button 
+              onclick="copyRegisterLog()" 
+              style="background: #007aff; border: none; color: white; padding: 6px 14px; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: 500; display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0, 122, 255, 0.3);"
+              onmouseover="this.style.background='#0051d5'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 3px 6px rgba(0, 122, 255, 0.4)'"
+              onmouseout="this.style.background='#007aff'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0, 122, 255, 0.3)'"
+              title="复制全部日志到剪贴板">
+              <i data-lucide="copy" style="width: 13px; height: 13px;"></i>
+              复制日志
+            </button>
+          </div>
+          <div class="register-log" id="registerLog"></div>
+        </div>
+        
+        <!-- 底部按钮 -->
+        <div class="register-modal-footer">
+          <button class="btn btn-danger" id="modalCancelBtn" onclick="cancelBatchRegister()">
+            <i data-lucide="x-circle" style="width: 16px; height: 16px;"></i>
+            取消注册
+          </button>
+          <button class="btn btn-secondary" onclick="closeBatchRegisterModal()">
+            <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+            关闭
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 登录获取 Token 弹窗 -->
+  <div id="loginTokenModal" class="modal-overlay" style="display:none;">
+    <div class="modal-dialog register-modal" onclick="event.stopPropagation()">
+      <div class="register-modal-header">
+        <div class="modal-title-row">
+          <i data-lucide="key" style="width: 24px; height: 24px; color: #007aff;"></i>
+          <h3 class="modal-title">登录获取 Token</h3>
+        </div>
+        <button class="modal-close-btn" onclick="closeLoginTokenModal()" title="关闭">
+          <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        </button>
+      </div>
+      
+      <div class="register-modal-body">
+        <!-- 账号信息 -->
+        <div class="register-stats">
+          <div class="register-stat-item" style="flex: 1;">
+            <span class="stat-label">账号:</span>
+            <span class="stat-value" id="loginTokenEmail" style="font-size: 13px;">-</span>
+          </div>
+          <div class="register-stat-item">
+            <span class="stat-label">状态:</span>
+            <span class="stat-value" id="loginTokenStatus">等待中</span>
+          </div>
+        </div>
+        
+        <!-- 日志显示区域 -->
+        <div class="register-log-container">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #2d2d2d; border-bottom: 1px solid #444;">
+            <span style="color: #d4d4d4; font-size: 12px; font-weight: 600; letter-spacing: 0.5px;">实时日志</span>
+            <button 
+              onclick="copyLoginTokenLog()" 
+              style="background: #007aff; border: none; color: white; padding: 6px 14px; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: 500; display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0, 122, 255, 0.3);"
+              onmouseover="this.style.background='#0051d5'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 3px 6px rgba(0, 122, 255, 0.4)'"
+              onmouseout="this.style.background='#007aff'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0, 122, 255, 0.3)'"
+              title="复制全部日志到剪贴板">
+              <i data-lucide="copy" style="width: 13px; height: 13px;"></i>
+              复制日志
+            </button>
+          </div>
+          <div class="register-log" id="loginTokenLog"></div>
+        </div>
+      </div>
+      
+      <div class="register-modal-footer">
+        <button class="btn btn-secondary" onclick="closeLoginTokenModal()">
+          <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+          关闭
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 手动添加账号弹窗 -->
+  <div id="addAccountModal" class="modal-overlay" onclick="hideAddAccountForm()">
+    <div class="modal-dialog modern-modal" onclick="event.stopPropagation()">
+      <div class="modern-modal-header">
+        <div class="modal-title-row">
+          <i data-lucide="user-plus" style="width: 24px; height: 24px; color: #007aff;"></i>
+          <h3 class="modal-title" data-i18n="addAccountTitle">添加账号</h3>
+        </div>
+        <button class="modal-close-btn" onclick="hideAddAccountForm()" title="关闭">
+          <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        </button>
+      </div>
+      
+      <div class="modern-modal-body">
+        <div class="form-group">
+          <label data-i18n="email">
+            <i data-lucide="mail" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+            邮箱地址
+          </label>
+          <input type="email" id="manualEmail" placeholder="请输入邮箱地址" autocomplete="off">
+        </div>
+        
+        <div class="form-group">
+          <label data-i18n="password">
+            <i data-lucide="lock" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+            密码
+          </label>
+          <input type="text" id="manualPassword" placeholder="请输入密码" autocomplete="off">
+        </div>
+        
+        <div class="form-group">
+          <label>
+            <i data-lucide="key" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+            API Key（可选）
+          </label>
+          <input type="text" id="manualApiKey" placeholder="请输入 API Key（可选）" autocomplete="off">
+          <div class="form-tip" style="margin-top: 6px;">
+            <i data-lucide="info" style="width: 12px; height: 12px;"></i>
+            <span>如果有 API Key，可以在此输入，否则留空</span>
+          </div>
+        </div>
+        
+        <div class="form-tip">
+          <i data-lucide="info" style="width: 14px; height: 14px;"></i>
+          <span>添加的账号将保存在本地，请确保信息准确</span>
+        </div>
+      </div>
+      
+      <div class="modern-modal-footer">
+        <button class="btn btn-secondary" onclick="hideAddAccountForm()" data-i18n="cancel">
+          取消
+        </button>
+        <button class="btn btn-primary" onclick="addManualAccount()" data-i18n="add">
+          <i data-lucide="check" style="width: 16px; height: 16px;"></i>
+          添加账号
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 语言设置弹窗 -->
+  <div id="languageModal" class="modal-overlay" style="display: none;" onclick="closeLanguageModal()">
+    <div class="modal-dialog" style="max-width: 400px; width: 90%;" onclick="event.stopPropagation()">
+      <div class="modern-modal-header">
+        <div class="modal-title-row">
+          <i data-lucide="languages" style="width: 24px; height: 24px; color: #007aff;"></i>
+          <h3 class="modal-title">语言设置</h3>
+        </div>
+        <button class="modal-close-btn" onclick="closeLanguageModal()" title="关闭">
+          <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        </button>
+      </div>
+      
+      <div class="modern-modal-body" style="padding: 24px;">
+        <div class="form-group">
+          <label>
+            <i data-lucide="globe-2" style="width: 16px; height: 16px;"></i>
+            选择语言
+          </label>
+          <select id="modalLanguageSelect" onchange="changeLanguageFromModal()" style="width: 100%; padding: 10px 12px; font-size: 14px; border: 1px solid #d1d1d6; border-radius: 8px; background: white; cursor: pointer;">
+            <option value="zh-CN">简体中文</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+        
+        <div class="form-tip" style="margin-top: 12px;">
+          <i data-lucide="info" style="width: 14px; height: 14px;"></i>
+          <span>语言设置将立即生效</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 版本更新弹窗 -->
+  <div id="versionUpdateModal" class="modal-overlay" style="display: none; z-index: 10000;">
+    <div class="modal-dialog modern-modal" style="max-width: 500px; width: 90%;" onclick="event.stopPropagation()">
+      <div class="modern-modal-header">
+        <div class="modal-title-row">
+          <i data-lucide="alert-circle" style="width: 24px; height: 24px; color: #ff3b30;"></i>
+          <h3 class="modal-title" id="versionUpdateTitle">发现新版本</h3>
+        </div>
+      </div>
+      
+      <div class="modern-modal-body">
+        <!-- 更新消息 -->
+        <div class="form-tip" style="background: #fff3cd; border: 1px solid #ffc107; margin-bottom: 16px;">
+          <i data-lucide="info" style="width: 16px; height: 16px; color: #856404;"></i>
+          <div style="flex: 1;">
+            <p style="margin: 0; font-size: 13px; color: #856404; line-height: 1.6;" id="versionUpdateContent">
+              当前版本已不再支持，请下载最新版本以继续使用。
+            </p>
+          </div>
+        </div>
+        
+        <!-- 版本信息 -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+          <div style="background: #f5f5f7; padding: 16px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 11px; color: #86868b; margin-bottom: 6px; font-weight: 500; text-transform: uppercase;">当前版本</div>
+            <div style="font-size: 18px; font-weight: 700; color: #1d1d1f;" id="currentVersionDisplay">-</div>
+          </div>
+          <div style="background: #e3f2fd; padding: 16px; border-radius: 8px; text-align: center; border: 1px solid #007aff;">
+            <div style="font-size: 11px; color: #007aff; margin-bottom: 6px; font-weight: 600; text-transform: uppercase;">最新版本</div>
+            <div style="font-size: 18px; font-weight: 700; color: #007aff;" id="latestVersionDisplay">-</div>
+          </div>
+        </div>
+        
+        <!-- 提示 -->
+        <div class="form-tip" style="margin-bottom: 0;">
+          <i data-lucide="lightbulb" style="width: 14px; height: 14px;"></i>
+          <span style="font-size: 12px;" id="versionNotice">为了确保最佳体验和安全性，建议及时更新</span>
+        </div>
+      </div>
+      
+      <div class="modern-modal-footer">
+        <button class="btn btn-secondary" id="versionCloseBtn" onclick="closeVersionUpdateModal()" style="display: none;">
+          稍后更新
+        </button>
+        <button class="btn btn-primary" id="versionDownloadBtn" onclick="openDownloadUrl()">
+          <i data-lucide="download" style="width: 16px; height: 16px;"></i>
+          立即下载
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 打开 QQ 群函数
+    function openQQGroup() {
+      // 使用全局的 shell（在 renderer.js 中已声明）
+      if (typeof shell === 'undefined') {
+        const { shell: electronShell } = require('electron');
+        electronShell.openExternal('https://qm.qq.com/q/1W3jvnDoak');
+      } else {
+        shell.openExternal('https://qm.qq.com/q/1W3jvnDoak');
+      }
+      
+      // 显示提示
+      if (typeof showToast !== 'undefined') {
+        showToast('正在打开 QQ 群...', 'info');
+      }
+    }
+
+    // 视图切换函数
+    function switchView(viewName) {
+      // 更新导航项激活状态
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      event.target.closest('.nav-item').classList.add('active');
+      
+      // 更新视图内容
+      document.querySelectorAll('.view-content').forEach(view => {
+        view.classList.remove('active');
+      });
+      document.getElementById(viewName).classList.add('active');
+      
+      // 更新标题和图标
+      const titles = {
+        register: { icon: 'users', title: '账号管理', subtitle: '批量注册和管理 Windsurf 账号' },
+        token: { icon: 'key', title: 'Token管理', subtitle: '获取和管理账号Token，支持自动切换' },
+        virtualcard: { icon: 'credit-card', title: '虚拟卡管理', subtitle: '管理虚拟信用卡，自动绑定账号' },
+        reset: { icon: 'rotate-ccw', title: '重置机器ID', subtitle: '重置 Windsurf 和 Cursor 的机器指纹信息' },
+        settings: { icon: 'settings', title: '系统设置', subtitle: '配置邮箱域名和系统参数' },
+        tutorial: { icon: 'book-open', title: '使用教程', subtitle: '系统要求、快速开始和常见问题' }
+      };
+      
+      const viewInfo = titles[viewName];
+      if (viewInfo) {
+        document.getElementById('viewTitle').textContent = viewInfo.title;
+        document.getElementById('viewSubtitle').textContent = viewInfo.subtitle;
+        
+        // 更新图标
+        const iconElement = document.getElementById('viewTitleIcon');
+        iconElement.setAttribute('data-lucide', viewInfo.icon);
+        lucide.createIcons();
+      }
+      
+      // 调用原有的switchTab逻辑来处理页面特定的初始化
+      if (typeof window.switchTabLogic === 'function') {
+        window.switchTabLogic(viewName);
+      }
+      
+      // 如果切换到设置页面，加载配置文件路径并显示悬浮保存按钮
+      const floatingSaveBtn = document.querySelector('.floating-save-btn');
+      if (viewName === 'settings') {
+        loadConfigPath();
+        if (floatingSaveBtn) floatingSaveBtn.style.display = 'flex';
+      } else {
+        if (floatingSaveBtn) floatingSaveBtn.style.display = 'none';
+      }
+    }
+    
+    // 兼容旧的switchTab函数（保持原有功能）
+    function switchTab(tabName) {
+      // 如果是新UI，使用switchView
+      if (document.querySelector('.app-container')) {
+        switchView(tabName);
+      } else {
+        // 旧UI逻辑（如果需要）
+        document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        
+        const activeTab = Array.from(document.querySelectorAll('.tab')).find(tab => 
+          tab.getAttribute('onclick')?.includes(tabName)
+        );
+        if (activeTab) activeTab.classList.add('active');
+        
+        const activeContent = document.getElementById(tabName);
+        if (activeContent) activeContent.classList.add('active');
+      }
+    }
+    
+    // 配置文件路径相关函数
+    async function loadConfigPath() {
+      try {
+        const result = await ipcRenderer.invoke('get-config-path');
+        const configPathInput = document.getElementById('configPath');
+        if (configPathInput && result.path) {
+          configPathInput.value = result.path;
+        }
+      } catch (error) {
+        console.error('获取配置文件路径失败:', error);
+      }
+    }
+    
+    async function copyConfigPath() {
+      const configPathInput = document.getElementById('configPath');
+      if (!configPathInput || !configPathInput.value) {
+        alert('配置文件路径未加载');
+        return;
+      }
+      
+      try {
+        await navigator.clipboard.writeText(configPathInput.value);
+        alert('路径已复制到剪贴板');
+      } catch (error) {
+        // 降级方案：使用传统方法
+        configPathInput.select();
+        document.execCommand('copy');
+        alert('路径已复制到剪贴板');
+      }
+    }
+    
+    async function openConfigFolder() {
+      try {
+        const result = await ipcRenderer.invoke('open-config-folder');
+        if (!result.success) {
+          alert('打开文件夹失败: ' + (result.error || '未知错误'));
+        }
+      } catch (error) {
+        console.error('打开配置文件夹失败:', error);
+        alert('打开文件夹失败: ' + error.message);
+      }
+    }
+    
+    // 重置机器
+    async function resetMachine() {
+      const confirmMsg = getCurrentLanguage() === 'zh-CN' 
+        ? '确定要重置机器吗？\n\n此操作将：\n• 清除机器指纹\n• 重置设备信息\n• 需要重启应用生效\n\n是否继续？'
+        : 'Are you sure you want to reset the machine?\n\nThis will:\n• Clear machine fingerprint\n• Reset device information\n• Require app restart to take effect\n\nContinue?';
+      
+      if (!confirm(confirmMsg)) {
+        return;
+      }
+      
+      try {
+        const result = await ipcRenderer.invoke('reset-machine');
+        
+        if (result.success) {
+          const successMsg = getCurrentLanguage() === 'zh-CN'
+            ? '机器重置成功！\n\n应用将在3秒后自动重启...'
+            : 'Machine reset successful!\n\nApp will restart in 3 seconds...';
+          
+          alert(successMsg);
+          
+          // 3秒后重启应用
+          setTimeout(() => {
+            ipcRenderer.invoke('restart-app');
+          }, 3000);
+        } else {
+          const errorMsg = getCurrentLanguage() === 'zh-CN'
+            ? `重置失败: ${result.error || '未知错误'}`
+            : `Reset failed: ${result.error || 'Unknown error'}`;
+          alert(errorMsg);
+        }
+      } catch (error) {
+        console.error('重置机器错误:', error);
+        const errorMsg = getCurrentLanguage() === 'zh-CN'
+          ? `重置失败: ${error.message}`
+          : `Reset failed: ${error.message}`;
+        alert(errorMsg);
+      }
+    }
+    
+    // 语言设置弹窗控制
+    function openLanguageModal() {
+      const modal = document.getElementById('languageModal');
+      const modalSelect = document.getElementById('modalLanguageSelect');
+      const currentLang = getCurrentLanguage();
+      
+      if (modalSelect) {
+        modalSelect.value = currentLang;
+      }
+      
+      modal.style.display = 'flex';
+      
+      // 初始化图标
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    }
+    
+    function closeLanguageModal() {
+      const modal = document.getElementById('languageModal');
+      modal.style.display = 'none';
+    }
+    
+    async function changeLanguageFromModal() {
+      const modalSelect = document.getElementById('modalLanguageSelect');
+      if (!modalSelect) return;
+      
+      const newLang = modalSelect.value;
+      
+      // 保存到 localStorage
+      setLanguage(newLang);
+      
+      // 通过 IPC 保存到文件
+      try {
+        await ipcRenderer.invoke('save-language', newLang);
+      } catch (err) {
+        console.error('保存语言设置失败:', err);
+      }
+      
+      // 更新UI
+      updateUILanguage();
+      
+      // 关闭弹窗
+      closeLanguageModal();
+    }
+    
+    // 批量注册弹窗控制
+    function openBatchRegisterModal() {
+      const modal = document.getElementById('batchRegisterModal');
+      const logEl = document.getElementById('registerLog');
+      
+      // 清空日志
+      if (logEl) {
+        logEl.innerHTML = '';
+      }
+      
+      // 重置统计
+      document.getElementById('modalTotalCount').textContent = '0';
+      document.getElementById('modalSuccessCount').textContent = '0';
+      document.getElementById('modalFailCount').textContent = '0';
+      document.getElementById('modalProgress').textContent = '0%';
+      
+      // 显示弹窗
+      modal.style.display = 'flex';
+      
+      // 初始化图标
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+      
+      // 开始注册
+      startBatchRegister();
+    }
+    
+    function closeBatchRegisterModal() {
+      const modal = document.getElementById('batchRegisterModal');
+      modal.style.display = 'none';
+    }
+    
+    // 登录获取 Token 弹窗控制
+    function closeLoginTokenModal() {
+      const modal = document.getElementById('loginTokenModal');
+      if (modal) modal.style.display = 'none';
+      
+      // 移除日志监听器
+      if (window.ipcRenderer) {
+        window.ipcRenderer.removeAllListeners('login-log');
+      }
+    }
+    
+    // 复制登录 Token 日志
+    function copyLoginTokenLog() {
+      const logEl = document.getElementById('loginTokenLog');
+      if (!logEl) return;
+      
+      // 获取所有日志条目
+      const logEntries = logEl.querySelectorAll('.log-entry');
+      if (logEntries.length === 0) {
+        showCenterMessage('暂无日志可复制', 'warning', 2000);
+        return;
+      }
+      
+      // 提取纯文本
+      const logText = Array.from(logEntries)
+        .map(entry => entry.textContent)
+        .join('\n');
+      
+      // 复制到剪贴板
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(logText)
+          .then(() => {
+            showCenterMessage('日志已复制到剪贴板', 'success', 2000);
+          })
+          .catch(err => {
+            console.error('复制失败:', err);
+            showCenterMessage('复制失败，请手动复制', 'error', 2000);
+          });
+      } else {
+        showCenterMessage('浏览器不支持自动复制', 'error', 2000);
+      }
+    }
+    
+    // 添加日志到弹窗
+    function addRegisterLog(message, type = 'info') {
+      const logEl = document.getElementById('registerLog');
+      if (!logEl) return;
+      
+      const timestamp = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+      const logEntry = document.createElement('div');
+      logEntry.className = 'log-entry';
+      
+      let colorClass = 'log-info';
+      if (type === 'success') colorClass = 'log-success';
+      else if (type === 'error') colorClass = 'log-error';
+      else if (type === 'warning') colorClass = 'log-warning';
+      
+      logEntry.innerHTML = `<span class="log-timestamp">[${timestamp}]</span><span class="${colorClass}">${message}</span>`;
+      // 存储纯文本内容用于复制
+      logEntry.setAttribute('data-log-text', `[${timestamp}] ${message}`);
+      logEl.appendChild(logEntry);
+      
+      // 自动滚动到底部
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+    
+    // 复制注册日志
+    function copyRegisterLog() {
+      const logEl = document.getElementById('registerLog');
+      if (!logEl) return;
+      
+      // 获取所有日志条目
+      const logEntries = logEl.querySelectorAll('.log-entry');
+      if (logEntries.length === 0) {
+        showCenterMessage('暂无日志可复制', 'warning', 2000);
+        return;
+      }
+      
+      // 提取纯文本
+      const logText = Array.from(logEntries)
+        .map(entry => entry.getAttribute('data-log-text') || entry.textContent)
+        .join('\n');
+      
+      // 复制到剪贴板
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(logText)
+          .then(() => {
+            showCenterMessage('日志已复制到剪贴板', 'success', 2000);
+          })
+          .catch(err => {
+            console.error('复制失败:', err);
+            fallbackCopyLog(logText);
+          });
+      } else {
+        fallbackCopyLog(logText);
+      }
+    }
+    
+    // 备用复制方法
+    function fallbackCopyLog(text) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      
+      try {
+        document.execCommand('copy');
+        showCenterMessage('日志已复制到剪贴板', 'success', 2000);
+      } catch (err) {
+        console.error('备用复制方法失败:', err);
+        showCenterMessage('复制失败，请手动复制', 'error', 2000);
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    }
+    
+    // 添加重置日志
+    // 重置机器ID相关函数已移至 js/resetMachine.js
+    
+    // 更新注册统计
+    function updateRegisterStats(total, success, fail, progress) {
+      document.getElementById('modalTotalCount').textContent = total;
+      document.getElementById('modalSuccessCount').textContent = success;
+      document.getElementById('modalFailCount').textContent = fail;
+      document.getElementById('modalProgress').textContent = progress + '%';
+    }
+    
+    // 密码显示/隐藏切换
+    function togglePassword(event) {
+      event.stopPropagation();
+      const btn = event.currentTarget;
+      const cell = btn.closest('.password-cell');
+      const masked = cell.querySelector('.password-masked');
+      const text = cell.querySelector('.password-text');
+      const icon = btn.querySelector('i');
+      
+      if (!cell || !masked || !text) {
+        console.error('密码元素未找到');
+        return;
+      }
+      
+      if (masked.style.display === 'none') {
+        // 隐藏密码
+        masked.style.display = 'inline';
+        text.style.display = 'none';
+        if (icon) {
+          icon.setAttribute('data-lucide', 'eye');
+        }
+      } else {
+        // 显示密码
+        masked.style.display = 'none';
+        text.style.display = 'inline';
+        if (icon) {
+          icon.setAttribute('data-lucide', 'eye-off');
+        }
+      }
+      
+      // 重新初始化图标
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    }
+    
+    // 复制邮箱文本
+    function copyEmailText(event) {
+      event.stopPropagation();
+      const emailText = event.target.textContent;
+      
+      if (!emailText) return;
+      
+      // 复制到剪贴板
+      navigator.clipboard.writeText(emailText).then(() => {
+        // 显示复制成功提示
+        const originalText = event.target.textContent;
+        const originalColor = event.target.style.color;
+        event.target.textContent = '✓ 已复制';
+        event.target.style.color = '#34c759';
+        
+        // 1秒后恢复原文本
+        setTimeout(() => {
+          event.target.textContent = originalText;
+          event.target.style.color = originalColor;
+        }, 1000);
+      }).catch(err => {
+        console.error('复制失败:', err);
+        alert('复制失败，请手动复制');
+      });
+    }
+    
+    // 复制密码文本
+    function copyPasswordText(event) {
+      event.stopPropagation();
+      const passwordText = event.target.textContent;
+      
+      if (!passwordText) return;
+      
+      // 复制到剪贴板
+      navigator.clipboard.writeText(passwordText).then(() => {
+        // 显示复制成功提示
+        const originalText = event.target.textContent;
+        event.target.textContent = '✓ 已复制';
+        event.target.style.color = '#34c759';
+        
+        // 1秒后恢复原文本
+        setTimeout(() => {
+          event.target.textContent = originalText;
+          event.target.style.color = '';
+        }, 1000);
+      }).catch(err => {
+        console.error('复制失败:', err);
+        alert('复制失败，请手动复制');
+      });
+    }
+    
+    // IMAP授权码显示/隐藏切换
+    function toggleImapPassword() {
+      const input = document.getElementById('imapPassword');
+      const icon = document.getElementById('imapPasswordIcon');
+      
+      if (!input || !icon) return;
+      
+      if (input.type === 'password') {
+        // 显示密码
+        input.type = 'text';
+        icon.setAttribute('data-lucide', 'eye-off');
+      } else {
+        // 隐藏密码
+        input.type = 'password';
+        icon.setAttribute('data-lucide', 'eye');
+      }
+      
+      // 重新初始化图标
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    }
+    
+    // 下拉菜单控制
+    function toggleAddAccountMenu(event) {
+      event.stopPropagation();
+      const menu = document.getElementById('addAccountMenu');
+      menu.classList.toggle('show');
+      
+      // 重新初始化图标
+      setTimeout(() => {
+        if (typeof lucide !== 'undefined') {
+          lucide.createIcons();
+        }
+      }, 0);
+    }
+
+    function hideAddAccountMenu() {
+      const menu = document.getElementById('addAccountMenu');
+      menu.classList.remove('show');
+    }
+
+    // 点击页面其他地方关闭下拉菜单
+    document.addEventListener('click', (event) => {
+      const menu = document.getElementById('addAccountMenu');
+      const btn = document.getElementById('addAccountBtn');
+      if (menu && !menu.contains(event.target) && !btn.contains(event.target)) {
+        hideAddAccountMenu();
+      }
+    });
+    
+    // 页面加载完成后初始化Lucide图标
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      
+      // 加载配置文件路径
+      if (typeof loadFilePaths === 'function') {
+        loadFilePaths();
+      }
+      
+      // 初始化域名管理器
+      if (typeof initDomainManager === 'function') {
+        initDomainManager();
+      }
+    });
+  </script>
+  <script src="renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windsurf-Tool 版本管理后台</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.05)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .form-group textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+        
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .btn:hover {
+            background: #5a67d8;
+        }
+        
+        .btn-danger {
+            background: #e53e3e;
+        }
+        
+        .btn-danger:hover {
+            background: #c53030;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .status.success {
+            background: #f0fff4;
+            border: 1px solid #9ae6b4;
+            color: #276749;
+        }
+        
+        .status.error {
+            background: #fed7d7;
+            border: 1px solid #feb2b2;
+            color: #c53030;
+        }
+        
+        .current-config {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .current-config h3 {
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+        
+        .config-item {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .config-item strong {
+            color: #4a5568;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Windsurf-Tool 版本管理</h1>
+            <p>管理应用版本和更新配置</p>
+        </div>
+        
+        <div class="content">
+            <div id="status" class="status"></div>
+            
+            <div class="current-config" id="currentConfig">
+                <h3>📋 当前配置</h3>
+                <div id="configDisplay">加载中...</div>
+            </div>
+            
+            <form id="versionForm">
+                <div class="form-group">
+                    <label for="adminToken">🔑 管理员令牌:</label>
+                    <input type="password" id="adminToken" required placeholder="请输入管理员令牌">
+                </div>
+                
+                <div class="form-group">
+                    <label for="latestVersion">📦 最新版本:</label>
+                    <input type="text" id="latestVersion" pattern="\d+\.\d+\.\d+" placeholder="例: 2.0.1" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="minSupportedVersion">⚠️ 最低支持版本:</label>
+                    <input type="text" id="minSupportedVersion" pattern="\d+\.\d+\.\d+" placeholder="例: 1.0.0" required>
+                </div>
+                
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="forceUpdate">
+                        <label for="forceUpdate">🔒 强制更新</label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="updateMessage">💬 更新提示消息:</label>
+                    <textarea id="updateMessage" placeholder="发现新版本，建议更新以获得更好的体验。"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="maintenanceEnabled">
+                        <label for="maintenanceEnabled">🔧 维护模式</label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="maintenanceMessage">🔧 维护提示消息:</label>
+                    <textarea id="maintenanceMessage" placeholder="系统维护中，请稍后再试。"></textarea>
+                </div>
+                
+                <button type="submit" class="btn">💾 保存配置</button>
+                <button type="button" class="btn" onclick="loadConfig()">🔄 刷新配置</button>
+                <button type="button" class="btn btn-danger" onclick="resetConfig()">🗑️ 重置配置</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = './admin_version.php';
+        
+        function showStatus(message, type = 'success') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+            
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 5000);
+        }
+        
+        function getAdminToken() {
+            return document.getElementById('adminToken').value;
+        }
+        
+        async function loadConfig() {
+            try {
+                const token = getAdminToken();
+                if (!token) {
+                    showStatus('请先输入管理员令牌', 'error');
+                    return;
+                }
+                
+                const response = await fetch(`${API_BASE}?token=${encodeURIComponent(token)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayConfig(data.config);
+                    fillForm(data.config);
+                    showStatus('配置加载成功');
+                } else {
+                    showStatus(data.message || '加载配置失败', 'error');
+                }
+            } catch (error) {
+                showStatus('网络错误: ' + error.message, 'error');
+            }
+        }
+        
+        function displayConfig(config) {
+            const display = document.getElementById('configDisplay');
+            display.innerHTML = `
+                <div class="config-item"><strong>最新版本:</strong> ${config.latest_version || 'N/A'}</div>
+                <div class="config-item"><strong>最低支持版本:</strong> ${config.min_supported_version || 'N/A'}</div>
+                <div class="config-item"><strong>强制更新:</strong> ${config.force_update ? '是' : '否'}</div>
+                <div class="config-item"><strong>维护模式:</strong> ${config.maintenance?.enabled ? '是' : '否'}</div>
+                <div class="config-item"><strong>最后更新:</strong> ${config.last_updated || 'N/A'}</div>
+            `;
+        }
+        
+        function fillForm(config) {
+            document.getElementById('latestVersion').value = config.latest_version || '';
+            document.getElementById('minSupportedVersion').value = config.min_supported_version || '';
+            document.getElementById('forceUpdate').checked = config.force_update || false;
+            document.getElementById('updateMessage').value = config.update_message || '';
+            document.getElementById('maintenanceEnabled').checked = config.maintenance?.enabled || false;
+            document.getElementById('maintenanceMessage').value = config.maintenance?.message || '';
+        }
+        
+        async function saveConfig(event) {
+            event.preventDefault();
+            
+            try {
+                const token = getAdminToken();
+                if (!token) {
+                    showStatus('请先输入管理员令牌', 'error');
+                    return;
+                }
+                
+                const formData = {
+                    latest_version: document.getElementById('latestVersion').value,
+                    min_supported_version: document.getElementById('minSupportedVersion').value,
+                    force_update: document.getElementById('forceUpdate').checked,
+                    update_message: document.getElementById('updateMessage').value,
+                    maintenance: {
+                        enabled: document.getElementById('maintenanceEnabled').checked,
+                        message: document.getElementById('maintenanceMessage').value
+                    }
+                };
+                
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Admin-Token': token
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showStatus('配置保存成功');
+                    displayConfig(data.config);
+                } else {
+                    showStatus(data.message || '保存失败', 'error');
+                }
+            } catch (error) {
+                showStatus('网络错误: ' + error.message, 'error');
+            }
+        }
+        
+        async function resetConfig() {
+            if (!confirm('确定要重置配置吗？此操作不可恢复！')) {
+                return;
+            }
+            
+            try {
+                const token = getAdminToken();
+                if (!token) {
+                    showStatus('请先输入管理员令牌', 'error');
+                    return;
+                }
+                
+                const response = await fetch(API_BASE, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-Admin-Token': token
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showStatus('配置已重置');
+                    document.getElementById('configDisplay').innerHTML = '配置已重置，请重新加载';
+                    document.getElementById('versionForm').reset();
+                } else {
+                    showStatus(data.message || '重置失败', 'error');
+                }
+            } catch (error) {
+                showStatus('网络错误: ' + error.message, 'error');
+            }
+        }
+        
+        // 绑定事件
+        document.getElementById('versionForm').addEventListener('submit', saveConfig);
+        
+        // 页面加载时尝试加载配置（如果有令牌）
+        window.addEventListener('load', () => {
+            const savedToken = localStorage.getItem('adminToken');
+            if (savedToken) {
+                document.getElementById('adminToken').value = savedToken;
+                loadConfig();
+            }
+        });
+        
+        // 保存令牌到本地存储
+        document.getElementById('adminToken').addEventListener('change', (e) => {
+            localStorage.setItem('adminToken', e.target.value);
+        });
+    </script>
+</body>
+</html>

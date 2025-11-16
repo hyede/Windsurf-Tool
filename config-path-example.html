@@ -1,0 +1,282 @@
+<!-- 配置文件路径显示功能示例 -->
+<!-- 将此代码添加到系统设置页面中 -->
+
+<div class="settings-section">
+  <div class="section-header">
+    <h3>配置文件路径</h3>
+    <p class="section-description">查看应用配置文件和账号文件的存储位置</p>
+  </div>
+  
+  <div class="settings-card">
+    <!-- 用户数据目录 -->
+    <div class="setting-item">
+      <div class="setting-label">
+        <i data-lucide="folder" class="setting-icon"></i>
+        <span>用户数据目录</span>
+      </div>
+      <div class="setting-value">
+        <input type="text" id="userDataPath" class="path-input" readonly>
+        <button class="copy-path-btn" onclick="copyPath('userDataPath')" title="复制路径">
+          <i data-lucide="copy"></i>
+        </button>
+        <button class="open-path-btn" onclick="openPath('userDataPath')" title="打开文件夹">
+          <i data-lucide="external-link"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- 配置文件路径 -->
+    <div class="setting-item">
+      <div class="setting-label">
+        <i data-lucide="settings" class="setting-icon"></i>
+        <span>配置文件 (windsurf-app-config.json)</span>
+      </div>
+      <div class="setting-value">
+        <input type="text" id="configFilePath" class="path-input" readonly>
+        <button class="copy-path-btn" onclick="copyPath('configFilePath')" title="复制路径">
+          <i data-lucide="copy"></i>
+        </button>
+        <button class="open-path-btn" onclick="openPathFile('configFilePath')" title="打开文件">
+          <i data-lucide="file-text"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- 账号文件路径 -->
+    <div class="setting-item">
+      <div class="setting-label">
+        <i data-lucide="users" class="setting-icon"></i>
+        <span>账号文件 (accounts.json)</span>
+      </div>
+      <div class="setting-value">
+        <input type="text" id="accountsFilePath" class="path-input" readonly>
+        <button class="copy-path-btn" onclick="copyPath('accountsFilePath')" title="复制路径">
+          <i data-lucide="copy"></i>
+        </button>
+        <button class="open-path-btn" onclick="openPathFile('accountsFilePath')" title="打开文件">
+          <i data-lucide="file-text"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- 平台信息 -->
+    <div class="setting-item">
+      <div class="setting-label">
+        <i data-lucide="monitor" class="setting-icon"></i>
+        <span>当前平台</span>
+      </div>
+      <div class="setting-value">
+        <span id="platformInfo" class="platform-badge"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .settings-section {
+    margin-bottom: 32px;
+  }
+
+  .section-header {
+    margin-bottom: 16px;
+  }
+
+  .section-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1d1d1f;
+    margin-bottom: 4px;
+  }
+
+  .section-description {
+    font-size: 12px;
+    color: #86868b;
+  }
+
+  .settings-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .setting-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0;
+    border-bottom: 1px solid #f0f0f5;
+  }
+
+  .setting-item:last-child {
+    border-bottom: none;
+  }
+
+  .setting-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 0 0 280px;
+  }
+
+  .setting-icon {
+    width: 18px;
+    height: 18px;
+    color: #007aff;
+  }
+
+  .setting-label span {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1d1d1f;
+  }
+
+  .setting-value {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .path-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #e5e5ea;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+    background: #f9f9f9;
+    color: #1d1d1f;
+    cursor: text;
+  }
+
+  .path-input:focus {
+    outline: none;
+    border-color: #007aff;
+    background: white;
+  }
+
+  .copy-path-btn,
+  .open-path-btn {
+    padding: 8px;
+    border: 1px solid #e5e5ea;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+
+  .copy-path-btn:hover {
+    background: #e3f2fd;
+    border-color: #007aff;
+    color: #007aff;
+  }
+
+  .open-path-btn:hover {
+    background: #e8f5e9;
+    border-color: #34c759;
+    color: #34c759;
+  }
+
+  .copy-path-btn svg,
+  .open-path-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .platform-badge {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #007aff, #5ac8fa);
+    color: white;
+  }
+</style>
+
+<script>
+  const { ipcRenderer } = require('electron');
+  const { shell } = require('electron');
+  const path = require('path');
+
+  // 加载配置文件路径
+  async function loadFilePaths() {
+    try {
+      const result = await ipcRenderer.invoke('get-file-paths');
+      
+      if (result.success) {
+        const paths = result.paths;
+        
+        // 显示路径
+        document.getElementById('userDataPath').value = paths.userDataPath;
+        document.getElementById('configFilePath').value = paths.configFile;
+        document.getElementById('accountsFilePath').value = paths.accountsFile;
+        
+        // 显示平台信息
+        const platformMap = {
+          'win32': 'Windows',
+          'darwin': 'macOS',
+          'linux': 'Linux'
+        };
+        document.getElementById('platformInfo').textContent = platformMap[paths.platform] || paths.platform;
+        
+        console.log('✅ 配置文件路径加载成功');
+      } else {
+        console.error('❌ 加载配置文件路径失败:', result.error);
+        alert('加载配置文件路径失败: ' + result.error);
+      }
+    } catch (error) {
+      console.error('❌ 加载配置文件路径失败:', error);
+      alert('加载配置文件路径失败: ' + error.message);
+    }
+  }
+
+  // 复制路径到剪贴板
+  function copyPath(inputId) {
+    const input = document.getElementById(inputId);
+    input.select();
+    document.execCommand('copy');
+    
+    // 显示提示
+    const btn = event.target.closest('button');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i data-lucide="check"></i>';
+    lucide.createIcons();
+    
+    setTimeout(() => {
+      btn.innerHTML = originalHTML;
+      lucide.createIcons();
+    }, 1500);
+  }
+
+  // 打开文件夹
+  function openPath(inputId) {
+    const input = document.getElementById(inputId);
+    const pathValue = input.value;
+    
+    if (pathValue) {
+      shell.openPath(pathValue).catch(err => {
+        console.error('打开文件夹失败:', err);
+        alert('打开文件夹失败: ' + err.message);
+      });
+    }
+  }
+
+  // 打开文件（显示文件所在文件夹并选中文件）
+  function openPathFile(inputId) {
+    const input = document.getElementById(inputId);
+    const filePath = input.value;
+    
+    if (filePath) {
+      shell.showItemInFolder(filePath);
+    }
+  }
+
+  // 页面加载时自动加载路径
+  document.addEventListener('DOMContentLoaded', () => {
+    loadFilePaths();
+  });
+</script>
