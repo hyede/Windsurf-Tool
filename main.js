@@ -57,6 +57,8 @@ process.stderr.on('error', (err) => {
 let mainWindow;
 // 当前批量注册的机器人实例，用于支持跨平台取消
 let currentRegistrationBot = null;
+// 版本检查定时器
+let versionCheckInterval = null;
 
 // 应用状态变量
 let isForceUpdateActive = false;      // 强制更新模式
