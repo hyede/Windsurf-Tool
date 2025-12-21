@@ -2,15 +2,23 @@
 // 将 ipcRenderer 挂载到 window 对象，供全局使用
 window.ipcRenderer = require('electron').ipcRenderer;
 
+// 全局状态变量
+let isForceUpdateActive = false;      // 强制更新模式
+let isMaintenanceModeActive = false;  // 维护模式
+let isQuitting = false;               // 应用正在退出
+let versionUpdateInfo = null;         // 版本更新信息
+let lastVersionCheckTime = 0;         // 上次版本检查时间
+const versionCheckCooldown = 10000;   // 版本检查冷却时间（10秒）
+
 // 加载 lucide 图标库
 try {
   const lucideModule = require('lucide');
   window.lucide = lucideModule;
   window.lucideIcons = lucideModule.icons || lucideModule;
   console.log('✅ Lucide 图标库加载成功');
-  
+
   // 创建全局的图标初始化函数
-  window.initLucideIcons = function() {
+  window.initLucideIcons = function () {
     try {
       if (window.lucide && window.lucide.createIcons) {
         window.lucide.createIcons({ icons: window.lucideIcons });
@@ -19,11 +27,11 @@ try {
       console.warn('初始化 Lucide 图标失败:', error);
     }
   };
-  
+
   // 重写 lucide.createIcons 为我们的包装函数
   if (window.lucide && window.lucide.createIcons) {
     const originalCreateIcons = window.lucide.createIcons;
-    window.lucide.createIcons = function(options) {
+    window.lucide.createIcons = function (options) {
       try {
         if (!options || !options.icons) {
           return originalCreateIcons.call(window.lucide, { icons: window.lucideIcons });
@@ -50,41 +58,41 @@ try {
 async function refreshAllData() {
   try {
     console.log('🔄 开始刷新所有数据...');
-    
+
     // 显示加载提示
     if (typeof showToast === 'function') {
       showToast('正在刷新所有数据...', 'info');
     }
-    
+
     // 1. 刷新账号列表
     console.log('📋 刷新账号列表...');
     if (typeof loadAccounts === 'function') {
       await loadAccounts();
     }
-    
+
     // 2. 刷新域名配置
     console.log('🌐 刷新域名配置...');
     if (typeof window.DomainManager !== 'undefined' && window.DomainManager.init) {
       await window.DomainManager.init();
     }
-    
+
     // 3. 刷新邮箱配置
     console.log('📧 刷新邮箱配置...');
     if (typeof loadEmailConfig === 'function') {
       await loadEmailConfig();
     }
-    
+
     // 4. 刷新当前登录账号
     console.log('👤 刷新当前登录账号...');
     if (typeof refreshCurrentAccount === 'function') {
       await refreshCurrentAccount();
     }
-    
+
     // 5. 重新初始化图标
     if (typeof lucide !== 'undefined' && lucide.createIcons) {
       lucide.createIcons({ icons: window.lucideIcons });
     }
-    
+
     console.log('✅ 所有数据刷新完成');
     if (typeof showToast === 'function') {
       showToast('所有数据已刷新', 'success');
@@ -137,13 +145,13 @@ window.ipcRenderer.on('check-for-updates', () => {
 // 监听版本更新通知
 window.ipcRenderer.on('version-update-available', (event, updateInfo) => {
   console.log('📢 收到版本更新通知:', updateInfo);
-  
+
   // 验证更新信息的完整性
   if (!updateInfo || !updateInfo.currentVersion || !updateInfo.latestVersion) {
     console.error('❌ 版本更新通知数据不完整:', updateInfo);
     return;
   }
-  
+
   // 只有确实需要更新时才显示弹窗
   if (updateInfo.hasUpdate) {
     console.log(`✅ 显示版本更新弹窗: ${updateInfo.currentVersion} -> ${updateInfo.latestVersion}`);
@@ -179,10 +187,10 @@ function activateMaintenanceMode(maintenanceInfo) {
   if (isMaintenanceModeActive) {
     return; // 已经在维护模式中
   }
-  
+
   isMaintenanceModeActive = true;
   showMaintenanceModal(maintenanceInfo);
-  
+
   // 注意：维护模式的恢夏检查由 versionManager 统一管理
   // 不再在此处设置定时器
 }
@@ -192,29 +200,29 @@ function deactivateMaintenanceMode() {
   if (!isMaintenanceModeActive) {
     return;
   }
-  
+
   isMaintenanceModeActive = false;
-  
+
   // 关闭维护模式弹窗
   const modal = document.getElementById('maintenanceModal');
   if (modal) {
     modal.remove();
   }
-  
+
   // 恢复所有功能
   document.body.style.pointerEvents = 'auto';
   enableAllFunctions();
-  
+
   showCustomAlert('服务器维护已结束，应用已恢复正常！', 'success');
 }
 
 // 退出应用程序
 function quitApplication() {
   console.log('🚪 用户请求退出应用...');
-  
+
   // 设置退出标志，防止 beforeunload 弹出提示
   isQuitting = true;
-  
+
   // 退出前先移除所有防护机制，避免 beforeunload 阻止退出
   if (isForceUpdateActive) {
     removeForceUpdateProtection();
@@ -224,7 +232,7 @@ function quitApplication() {
     document.removeEventListener('keydown', preventMaintenanceKeyEvents, true);
     document.removeEventListener('contextmenu', preventMaintenanceEvents, true);
   }
-  
+
   if (window.ipcRenderer) {
     window.ipcRenderer.send('quit-app');
   } else {
@@ -269,14 +277,14 @@ function showApiUnavailableModal(errorInfo) {
       </div>
     </div>
   `;
-  
+
   document.body.insertAdjacentHTML('beforeend', modalHTML);
-  
+
   // 初始化图标
   if (typeof lucide !== 'undefined') {
     lucide.createIcons();
   }
-  
+
   // 绑定退出按钮事件
   const exitBtn = document.getElementById('apiUnavailableExitBtn');
   if (exitBtn) {
@@ -284,11 +292,11 @@ function showApiUnavailableModal(errorInfo) {
       quitApplication();
     });
   }
-  
+
   // 阻止所有交互
   document.body.style.pointerEvents = 'none';
   document.getElementById('apiUnavailableModal').style.pointerEvents = 'auto';
-  
+
   // 设置强制更新状态
   isForceUpdateActive = true;
   setupForceUpdateProtection();
@@ -298,78 +306,78 @@ function showApiUnavailableModal(errorInfo) {
 async function retryConnection() {
   const retryBtn = document.getElementById('retryConnectionBtn');
   const modal = document.getElementById('apiUnavailableModal');
-  
+
   if (!retryBtn) return;
-  
+
   // 禁用按钮并显示加载状态
   retryBtn.disabled = true;
   retryBtn.style.opacity = '0.6';
   retryBtn.style.cursor = 'not-allowed';
   retryBtn.innerHTML = '<i data-lucide="loader" style="width: 16px; height: 16px; animation: spin 1s linear infinite;"></i><span>正在重试...</span>';
-  
+
   // 添加旋转动画
   const style = document.createElement('style');
   style.textContent = '@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
   document.head.appendChild(style);
-  
+
   // 初始化图标
   if (typeof lucide !== 'undefined') {
     lucide.createIcons();
   }
-  
+
   try {
     console.log('🔄 用户手动重试连接到服务器...');
-    
+
     // 调用版本检查来测试连接
     const result = await window.ipcRenderer.invoke('check-for-updates');
-    
+
     if (result.success) {
       console.log('✅ 重试成功，服务器连接正常');
-      
+
       // 显示成功提示
       retryBtn.innerHTML = '<i data-lucide="check" style="width: 16px; height: 16px;"></i><span>连接成功！</span>';
       retryBtn.style.background = 'linear-gradient(180deg, #34c759 0%, #28a745 100%)';
-      
+
       if (typeof lucide !== 'undefined') {
         lucide.createIcons();
       }
-      
+
       // 延迟后关闭弹窗并恢复应用
       setTimeout(() => {
         if (modal) {
           modal.remove();
         }
-        
+
         // 恢复页面交互
         document.body.style.pointerEvents = 'auto';
         isForceUpdateActive = false;
-        
+
         // 刷新页面数据
         if (typeof refreshAllData === 'function') {
           refreshAllData();
         }
-        
+
         showCustomAlert('服务器连接已恢复！', 'success');
       }, 1000);
-      
+
     } else {
       throw new Error(result.error || '连接失败');
     }
-    
+
   } catch (error) {
     console.error('❌ 重试连接失败:', error);
-    
+
     // 恢复按钮状态
     retryBtn.disabled = false;
     retryBtn.style.opacity = '1';
     retryBtn.style.cursor = 'pointer';
     retryBtn.innerHTML = '<i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i><span>重试连接</span>';
     retryBtn.style.background = 'linear-gradient(180deg, #34c759 0%, #28a745 100%)';
-    
+
     if (typeof lucide !== 'undefined') {
       lucide.createIcons();
     }
-    
+
     // 显示错误提示
     showCustomAlert('连接失败，请检查网络后再试\n\n错误信息: ' + error.message, 'error');
   }
@@ -382,10 +390,10 @@ async function safeIpcInvoke(channel, ...args) {
     showCustomAlert('服务器维护中，该功能暂时不可用', 'warning');
     return { success: false, error: '服务器维护中' };
   }
-  
+
   try {
     const result = await window.ipcRenderer.invoke(channel, ...args);
-    
+
     // 检查返回结果中是否包含维护模式信息
     if (result && result.error && result.error.includes('维护')) {
       console.log('🔧 API调用检测到维护模式');
@@ -405,7 +413,7 @@ async function safeIpcInvoke(channel, ...args) {
         }
       }, 100);
     }
-    
+
     return result;
   } catch (error) {
     console.error(`IPC调用失败 (${channel}):`, error);
@@ -428,12 +436,12 @@ function setupMaintenanceInterceptors() {
   document.addEventListener('click', (event) => {
     if (isMaintenanceModeActive) {
       const target = event.target;
-      
+
       // 允许维护模式弹窗内的按钮
       if (target.closest('#maintenanceModal')) {
         return;
       }
-      
+
       // 阻止其他所有按钮点击
       if (target.tagName === 'BUTTON' || target.closest('button')) {
         event.preventDefault();
@@ -443,7 +451,7 @@ function setupMaintenanceInterceptors() {
       }
     }
   }, true);
-  
+
   // 拦截表单提交
   document.addEventListener('submit', (event) => {
     if (isMaintenanceModeActive) {
@@ -453,7 +461,7 @@ function setupMaintenanceInterceptors() {
       return false;
     }
   }, true);
-  
+
   // 拦截链接点击
   document.addEventListener('click', (event) => {
     if (isMaintenanceModeActive) {
@@ -474,20 +482,20 @@ function setupMaintenanceInterceptors() {
 // 手动检查版本更新
 async function checkForUpdates() {
   const now = Date.now();
-  
+
   // 检查冷却时间
   if (now - lastVersionCheckTime < versionCheckCooldown) {
     const remainingTime = Math.ceil((versionCheckCooldown - (now - lastVersionCheckTime)) / 1000);
     showCustomAlert(`请等待 ${remainingTime} 秒后再次检查版本`, 'warning');
     return;
   }
-  
+
   lastVersionCheckTime = now;
-  
+
   try {
     console.log('🔍 手动检查版本更新...');
     const result = await safeIpcInvoke('check-for-updates');
-    
+
     if (result.success) {
       // 验证返回的数据完整性
       if (!result.currentVersion || !result.latestVersion) {
@@ -495,9 +503,9 @@ async function checkForUpdates() {
         showCustomAlert('版本检测失败：服务器返回数据异常', 'error');
         return;
       }
-      
+
       console.log(`✅ 版本检测完成 - 当前: ${result.currentVersion}, 最新: ${result.latestVersion}`);
-      
+
       if (result.hasUpdate) {
         showVersionUpdateModal(result);
       } else {
@@ -537,10 +545,10 @@ function updateUILanguage() {
 // 页面加载完成后初始化
 window.addEventListener('DOMContentLoaded', () => {
   updateUILanguage();
-  
+
   // 添加全局按钮点击拦截器
   setupMaintenanceInterceptors();
-  
+
   // 确保所有弹窗初始状态为隐藏
   const modals = ['addAccountModal', 'importAccountModal', 'exportAccountModal'];
   modals.forEach(modalId => {
@@ -549,20 +557,20 @@ window.addEventListener('DOMContentLoaded', () => {
       modal.classList.remove('active');
     }
   });
-  
+
   // 监听版本更新通知
   window.ipcRenderer.on('version-update-required', (event, versionInfo) => {
     showVersionUpdateModal(versionInfo);
   });
-  
+
   // 初始化全局防护机制（用于检测强制更新状态）
   initializeGlobalProtection();
-  
+
   // 监听主进程发送的强制更新警告
   window.ipcRenderer.on('show-force-update-warning', () => {
     if (isForceUpdateActive) {
       showCustomAlert('当前版本已停止支持，无法刷新页面。\n\n请点击“立即更新”按钮下载最新版本。', 'warning');
-      
+
       // 确保强制更新弹窗显示
       const modal = document.getElementById('versionUpdateModal');
       if (modal) {
@@ -571,7 +579,7 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     }
   });
-  
+
   // 页面刷新时自动检测版本更新
   setTimeout(() => {
     checkForUpdatesOnRefresh();
@@ -594,7 +602,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
       });
     }
-  } catch (e) {}
+  } catch (e) { }
 });
 
 // 显示版本更新弹窗
@@ -604,28 +612,28 @@ function showVersionUpdateModal(versionInfo) {
     console.error('❌ 版本信息为空，无法显示更新弹窗');
     return;
   }
-  
+
   if (!versionInfo.currentVersion || !versionInfo.latestVersion) {
     console.error('❌ 版本信息不完整，无法显示更新弹窗:', versionInfo);
     return;
   }
-  
+
   // 验证版本号格式（防止异常版本号如 999.0.0）
   const versionPattern = /^(\d+)\.(\d+)\.(\d+)$/;
   if (!versionPattern.test(versionInfo.latestVersion)) {
     console.error('❌ 最新版本号格式异常:', versionInfo.latestVersion);
     return;
   }
-  
+
   // 检查版本号是否合理（每部分不超过100）
   const versionParts = versionInfo.latestVersion.split('.').map(Number);
   if (versionParts.some(part => part > 100)) {
     console.error('❌ 版本号数值异常:', versionInfo.latestVersion);
     return;
   }
-  
+
   versionUpdateInfo = versionInfo;
-  
+
   const modal = document.getElementById('versionUpdateModal');
   const title = document.getElementById('versionUpdateTitle');
   const content = document.getElementById('versionUpdateContent');
@@ -634,18 +642,18 @@ function showVersionUpdateModal(versionInfo) {
   const downloadBtn = document.getElementById('versionDownloadBtn');
   const closeBtn = document.getElementById('versionCloseBtn');
   const notice = document.getElementById('versionNotice');
-  
+
   if (!modal) return;
-  
+
   console.log('✅ 显示版本更新弹窗:', versionInfo);
-  
+
   // 设置标题（图标在 HTML 中已定义，这里只设置文本）
   if (versionInfo.forceUpdate) {
     title.textContent = '强制更新';
   } else {
     title.textContent = '发现新版本';
   }
-  
+
   // 设置更新内容，支持换行显示
   let updateMessage = '';
   if (versionInfo.updateMessage) {
@@ -658,13 +666,13 @@ function showVersionUpdateModal(versionInfo) {
       updateMessage = formatUpdateMessage(versionInfo.updateMessage);
     }
   } else {
-    updateMessage = versionInfo.forceUpdate 
+    updateMessage = versionInfo.forceUpdate
       ? '当前版本已不再支持，请立即下载最新版本以继续使用。'
       : '发现新版本，建议您更新以获得更好的体验和新功能。';
   }
-  
+
   content.textContent = updateMessage;
-  
+
   // 设置版本信息
   if (versionInfo.currentVersion) {
     currentVersion.textContent = versionInfo.currentVersion;
@@ -672,7 +680,7 @@ function showVersionUpdateModal(versionInfo) {
   if (versionInfo.latestVersion) {
     latestVersion.textContent = versionInfo.latestVersion;
   }
-  
+
   // 设置下载按钮文本和关闭按钮显示
   if (versionInfo.forceUpdate) {
     downloadBtn.innerHTML = '<i data-lucide="alert-triangle" style="width: 16px; height: 16px; margin-right: 8px;"></i>立即更新（必需）';
@@ -684,7 +692,7 @@ function showVersionUpdateModal(versionInfo) {
       const newCloseBtn = closeBtn.cloneNode(true);
       closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
       // 添加新的事件监听器
-      newCloseBtn.addEventListener('click', function(e) {
+      newCloseBtn.addEventListener('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
         quitApplication();
@@ -703,7 +711,7 @@ function showVersionUpdateModal(versionInfo) {
         const newCloseBtn = closeBtn.cloneNode(true);
         closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
         // 添加新的事件监听器
-        newCloseBtn.addEventListener('click', function(e) {
+        newCloseBtn.addEventListener('click', function (e) {
           e.preventDefault();
           e.stopPropagation();
           quitApplication();
@@ -719,7 +727,7 @@ function showVersionUpdateModal(versionInfo) {
         const newCloseBtn = closeBtn.cloneNode(true);
         closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
         // 添加新的事件监听器
-        newCloseBtn.addEventListener('click', function(e) {
+        newCloseBtn.addEventListener('click', function (e) {
           e.preventDefault();
           e.stopPropagation();
           closeVersionUpdateModal();
@@ -728,7 +736,7 @@ function showVersionUpdateModal(versionInfo) {
       }
     }
   }
-  
+
   // 设置提示信息（图标在 HTML 中已定义，这里只设置文本）
   if (versionInfo.forceUpdate) {
     notice.textContent = '当前版本已停止支持，请立即更新或退出程序';
@@ -748,30 +756,30 @@ function showVersionUpdateModal(versionInfo) {
     notice.parentElement.style.borderColor = '#ffcc02';
     notice.style.color = '#f57c00';
   }
-  
+
   // 显示弹窗（不可关闭）
   modal.style.display = 'flex';
-  
+
   // 确保弹窗和按钮可以接收点击事件
   modal.style.pointerEvents = 'auto';
   const modalDialog = modal.querySelector('.modal-dialog');
   if (modalDialog) {
     modalDialog.style.pointerEvents = 'auto';
   }
-  
+
   // 如果是强制更新或维护模式，设置防护机制
   if (versionInfo.forceUpdate || versionInfo.isSupported === false) {
     isForceUpdateActive = true;
     setupForceUpdateProtection();
-    
+
     // 通知主进程启用强制更新防护
     window.ipcRenderer.send('set-force-update-status', true);
-    
+
     // 阻止其他区域的交互，但保持弹窗可点击
     document.body.style.pointerEvents = 'none';
     modal.style.pointerEvents = 'auto';
   }
-  
+
   // 初始化图标
   if (typeof lucide !== 'undefined') {
     lucide.createIcons();
@@ -783,13 +791,13 @@ function formatUpdateMessage(updateMessage) {
   if (typeof updateMessage === 'string') {
     return updateMessage;
   }
-  
+
   let formatted = '';
-  
+
   if (updateMessage.title) {
     formatted += `${updateMessage.title}\n\n`;
   }
-  
+
   if (updateMessage.features && updateMessage.features.length > 0) {
     formatted += '✨ 新功能:\n';
     updateMessage.features.forEach(feature => {
@@ -797,7 +805,7 @@ function formatUpdateMessage(updateMessage) {
     });
     formatted += '\n';
   }
-  
+
   if (updateMessage.fixes && updateMessage.fixes.length > 0) {
     formatted += '🐛 修复:\n';
     updateMessage.fixes.forEach(fix => {
@@ -805,7 +813,7 @@ function formatUpdateMessage(updateMessage) {
     });
     formatted += '\n';
   }
-  
+
   if (updateMessage.improvements && updateMessage.improvements.length > 0) {
     formatted += '⚡ 改进:\n';
     updateMessage.improvements.forEach(improvement => {
@@ -813,24 +821,24 @@ function formatUpdateMessage(updateMessage) {
     });
     formatted += '\n';
   }
-  
+
   if (updateMessage.notes) {
     formatted += `📝 说明:\n${updateMessage.notes}`;
   }
-  
+
   return formatted.trim() || '发现新版本，建议您更新以获得更好的体验。';
 }
 
 // 显示维护模式弹窗
 function showMaintenanceModal(maintenanceInfo) {
   console.log('显示维护模式弹窗:', maintenanceInfo);
-  
+
   // 创建维护模式模态框
   const existingModal = document.getElementById('maintenanceModal');
   if (existingModal) {
     existingModal.remove();
   }
-  
+
   const modalHTML = `
     <div id="maintenanceModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); display: flex; align-items: center; justify-content: center; z-index: 10000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
       <div style="background: white; border-radius: 16px; padding: 40px; max-width: 500px; text-align: center; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);">
@@ -866,14 +874,14 @@ function showMaintenanceModal(maintenanceInfo) {
       }
     </style>
   `;
-  
+
   document.body.insertAdjacentHTML('beforeend', modalHTML);
-  
+
   // 初始化图标
   if (typeof lucide !== 'undefined') {
     lucide.createIcons();
   }
-  
+
   // 绑定重新检查按钮
   const retryButton = document.getElementById('maintenanceRetryBtn');
   if (retryButton) {
@@ -883,7 +891,7 @@ function showMaintenanceModal(maintenanceInfo) {
       if (typeof lucide !== 'undefined') {
         lucide.createIcons();
       }
-      
+
       // 注意：维护模式检查已由 versionManager 统一管理
       // 这里暂时不做检查，等待 versionManager 的通知
       setTimeout(() => {
@@ -896,7 +904,7 @@ function showMaintenanceModal(maintenanceInfo) {
       }, 2000);
     });
   }
-  
+
   // 绑定退出按钮
   const exitButton = document.getElementById('maintenanceExitBtn');
   if (exitButton) {
@@ -911,11 +919,11 @@ function showMaintenanceModal(maintenanceInfo) {
       if (confirmed) quitApplication();
     });
   }
-  
+
   // 阻止所有其他交互
   document.body.style.pointerEvents = 'none';
   document.getElementById('maintenanceModal').style.pointerEvents = 'auto';
-  
+
   // 禁用所有功能按钮
   disableAllFunctions();
 }
@@ -929,27 +937,27 @@ function disableAllFunctions() {
     button.style.opacity = '0.5';
     button.style.cursor = 'not-allowed';
   });
-  
+
   // 禁用所有输入框
   const inputs = document.querySelectorAll('input, select, textarea');
   inputs.forEach(input => {
     input.disabled = true;
     input.style.opacity = '0.5';
   });
-  
+
   // 禁用所有链接
   const links = document.querySelectorAll('a');
   links.forEach(link => {
     link.style.pointerEvents = 'none';
     link.style.opacity = '0.5';
   });
-  
+
   // 阻止键盘快捷键（如F5刷新）
   document.addEventListener('keydown', preventMaintenanceKeyEvents, true);
-  
+
   // 阻止右键菜单
   document.addEventListener('contextmenu', preventMaintenanceEvents, true);
-  
+
   // 添加维护模式遮罩到主要内容区域
   const mainContent = document.querySelector('.container') || document.body;
   if (mainContent && !document.getElementById('maintenanceOverlay')) {
@@ -976,7 +984,7 @@ function disableAllFunctions() {
         <div>服务器维护中，功能暂时不可用</div>
       </div>
     `;
-    
+
     document.body.appendChild(overlay);
   }
 }
@@ -990,7 +998,7 @@ function preventMaintenanceKeyEvents(event) {
     showCustomAlert('服务器维护中，无法刷新页面', 'warning');
     return false;
   }
-  
+
   // 阻止开发者工具
   if (event.key === 'F12' || (event.ctrlKey && event.shiftKey && event.key === 'I')) {
     event.preventDefault();
@@ -1015,25 +1023,25 @@ function enableAllFunctions() {
     button.style.opacity = '1';
     button.style.cursor = 'pointer';
   });
-  
+
   // 恢复所有输入框
   const inputs = document.querySelectorAll('input, select, textarea');
   inputs.forEach(input => {
     input.disabled = false;
     input.style.opacity = '1';
   });
-  
+
   // 恢复所有链接
   const links = document.querySelectorAll('a');
   links.forEach(link => {
     link.style.pointerEvents = 'auto';
     link.style.opacity = '1';
   });
-  
+
   // 移除事件监听器
   document.removeEventListener('keydown', preventMaintenanceKeyEvents, true);
   document.removeEventListener('contextmenu', preventMaintenanceEvents, true);
-  
+
   // 移除维护模式遮罩
   const overlay = document.getElementById('maintenanceOverlay');
   if (overlay) {
@@ -1043,7 +1051,7 @@ function enableAllFunctions() {
 
 // 打开下载链接 - 显示选择对话框
 async function openDownloadUrl() {
-  
+
   // 创建选择对话框
   const modalHTML = `
     <div id="downloadChoiceModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; z-index: 10001; pointer-events: auto;">
@@ -1071,15 +1079,15 @@ async function openDownloadUrl() {
       </div>
     </div>
   `;
-  
+
   document.body.insertAdjacentHTML('beforeend', modalHTML);
-  
+
   // 确保弹窗可以接收点击事件
   const modal = document.getElementById('downloadChoiceModal');
   if (modal) {
     modal.style.pointerEvents = 'auto';
   }
-  
+
   // 初始化图标
   if (typeof lucide !== 'undefined') {
     lucide.createIcons();
@@ -1106,7 +1114,7 @@ function closeDownloadChoice() {
 // 初始化全局防护机制
 function initializeGlobalProtection() {
   console.log('🛡️ 初始化全局防护机制');
-  
+
   // 监听页面可见性变化，确保强制更新弹窗始终显示
   document.addEventListener('visibilitychange', () => {
     if (isForceUpdateActive && !document.hidden) {
@@ -1120,7 +1128,7 @@ function initializeGlobalProtection() {
       }, 100);
     }
   });
-  
+
   // 监听窗口焦点变化
   window.addEventListener('focus', () => {
     if (isForceUpdateActive) {
@@ -1136,10 +1144,10 @@ function initializeGlobalProtection() {
 // 设置强制更新防护机制
 function setupForceUpdateProtection() {
   console.log('🔒 启用强制更新防护机制');
-  
+
   // 防止页面刷新
   window.addEventListener('beforeunload', preventRefreshDuringForceUpdate);
-  
+
   // 防止快捷键刷新
   document.addEventListener('keydown', preventRefreshKeysDuringForceUpdate);
 }
@@ -1147,12 +1155,12 @@ function setupForceUpdateProtection() {
 // 移除强制更新防护机制
 function removeForceUpdateProtection() {
   console.log('🔓 移除强制更新防护机制');
-  
+
   isForceUpdateActive = false;
-  
+
   window.removeEventListener('beforeunload', preventRefreshDuringForceUpdate);
   document.removeEventListener('keydown', preventRefreshKeysDuringForceUpdate);
-  
+
   // 通知主进程关闭强制更新防护
   window.ipcRenderer.send('set-force-update-status', false);
 }
@@ -1163,16 +1171,16 @@ function preventRefreshDuringForceUpdate(event) {
   if (isQuitting) {
     return;
   }
-  
+
   if (isForceUpdateActive) {
     event.preventDefault();
     event.returnValue = '当前版本已停止支持，必须更新才能继续使用。请点击"立即更新"按钮下载最新版本。';
-    
+
     // 显示提示
     setTimeout(() => {
       showCustomAlert('当前版本已停止支持，无法刷新页面。\n\n请点击“立即更新”按钮下载最新版本。', 'warning');
     }, 100);
-    
+
     return '当前版本已停止支持，必须更新才能继续使用。';
   }
 }
@@ -1187,21 +1195,21 @@ function preventRefreshKeysDuringForceUpdate(event) {
       // Windows/Linux: Ctrl+R
       (event.ctrlKey && event.key === 'r')
     );
-    
+
     if (isRefreshKey) {
       event.preventDefault();
       event.stopPropagation();
-      
+
       // 显示提示
       showCustomAlert('当前版本已停止支持，无法刷新页面。\n\n请点击“立即更新”按钮下载最新版本。', 'warning');
-      
+
       // 确保弹窗仍然显示
       const modal = document.getElementById('versionUpdateModal');
       if (modal) {
         modal.style.display = 'flex';
         modal.focus();
       }
-      
+
       return false;
     }
   }
@@ -1214,23 +1222,23 @@ function closeVersionUpdateModal() {
     showCustomAlert('当前版本已停止支持，必须更新才能继续使用。\n\n请点击“立即更新”按钮下载最新版本。', 'warning');
     return;
   }
-  
+
   if (versionUpdateInfo && versionUpdateInfo.isSupported === false) {
     // 维护模式时不允许关闭
     showCustomAlert('当前版本已进入维护模式，为了您的使用安全，强烈建议立即更新。\n\n请点击“立即下载最新版本”按钮。', 'warning');
     return;
   }
-  
+
   const modal = document.getElementById('versionUpdateModal');
   if (modal) {
     modal.style.display = 'none';
-    
+
     // 恢复页面交互
     document.body.style.pointerEvents = 'auto';
-    
+
     console.log('✕ 用户关闭了版本更新弹窗');
   }
-  
+
   // 清理版本更新信息
   versionUpdateInfo = null;
 }
@@ -1243,25 +1251,25 @@ async function checkForUpdatesOnRefresh() {
     console.log('⏳ 版本检测在冷却时间内，跳过页面刷新检测');
     return;
   }
-  
+
   try {
     console.log('🔄 页面刷新，执行版本检测...');
-    
+
     // 更新最后检测时间
     lastVersionCheckTime = now;
-    
+
     const result = await window.ipcRenderer.invoke('check-for-updates');
-    
+
     if (result.success) {
       // 验证返回的数据完整性
       if (!result.currentVersion || !result.latestVersion) {
         console.error('❌ 版本检测返回数据不完整:', result);
         return; // 静默失败
       }
-      
+
       if (result.hasUpdate) {
         console.log(`🆕 检测到版本更新: ${result.currentVersion} -> ${result.latestVersion}`);
-        
+
         // 直接显示更新弹窗，不显示"已是最新版本"的提示
         showVersionUpdateModal(result);
       } else {
@@ -1298,17 +1306,17 @@ function loadUsedAccountsFromStorage() {
       const arr = JSON.parse(raw);
       usedAccountIds = new Set(Array.isArray(arr) ? arr : []);
     }
-  } catch {}
+  } catch { }
 }
 
 function saveUsedAccountsToStorage() {
   try {
     localStorage.setItem('usedAccounts', JSON.stringify(Array.from(usedAccountIds)));
-  } catch {}
+  } catch { }
 }
 
 // 标签页逻辑（页面特定的初始化）
-window.switchTabLogic = function(tabName) {
+window.switchTabLogic = function (tabName) {
   if (tabName === 'register') {
     // 合并后：在“批量注册 / 账号管理”页刷新账号列表
     loadAccounts();
@@ -1346,12 +1354,12 @@ window.switchTabLogic = function(tabName) {
 function switchTab(tabName) {
   // 检查是否是新UI
   const isNewUI = document.querySelector('.app-container');
-  
+
   if (!isNewUI) {
     // 旧UI逻辑
     document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-    
+
     if (event && event.target) {
       event.target.classList.add('active');
     }
@@ -1360,7 +1368,7 @@ function switchTab(tabName) {
       content.classList.add('active');
     }
   }
-  
+
   // 执行页面特定的逻辑
   window.switchTabLogic(tabName);
 }
@@ -1383,7 +1391,7 @@ function renderSwitchAccountsGrid() {
     const selected = acc.id === selectedSwitchAccountId;
     const borderColor = selected ? '#0071e3' : 'rgba(0,0,0,0.06)';
     const bg = selected ? '#eaf3ff' : '#f5f5f7';
-    const statusBadge = expiry.isExpired 
+    const statusBadge = expiry.isExpired
       ? `<span class="badge" style="background:#e74c3c;">已到期</span>`
       : `<span class="badge" style="background:${expiry.expiryColor};">${expiry.expiryText}</span>`;
 
@@ -1421,7 +1429,7 @@ function renderUsedAccountsGrid() {
   }
   grid.innerHTML = list.map(acc => {
     const expiry = calculateExpiry(acc.createdAt);
-    const statusBadge = expiry.isExpired 
+    const statusBadge = expiry.isExpired
       ? `<span class="badge" style="background:#e74c3c;">已到期</span>`
       : `<span class="badge" style="background:${expiry.expiryColor};">${expiry.expiryText}</span>`;
     return `
@@ -1476,57 +1484,57 @@ async function startBatchRegister() {
     addRegisterLog('批量注册正在进行中，请勿重复点击', 'warning');
     return;
   }
-  
+
   const count = parseInt(document.getElementById('registerCount').value);
   const threads = parseInt(document.getElementById('registerThreads').value);
-  
+
   if (!count || count < 1) {
     showCustomAlert('请输入有效的注册数量', 'warning');
     return;
   }
-  
+
   if (!threads || threads < 1) {
     showCustomAlert('请输入有效的并发数', 'warning');
     return;
   }
-  
+
   if (!currentConfig.emailConfig) {
     showCustomAlert('请先在系统设置中配置IMAP邮箱', 'warning');
     return;
   }
-  
+
   // 切换到进度视图
   if (typeof showRegisterProgress === 'function') {
     showRegisterProgress();
   }
-  
+
   // 设置注册状态
   isRegistering = true;
-  
+
   // 初始化统计
   updateRegisterStats(count, 0, 0, 0);
   addRegisterLog(`开始批量注册，总数量: ${count}, 并发数: ${threads}`, 'info');
-  
+
   try {
     // 注册前强制刷新域名配置（避免使用缓存）
     if (window.DomainManager && window.DomainManager.init) {
       await window.DomainManager.init();
       addRegisterLog(`📋 已刷新域名配置: ${currentConfig.emailDomains.join(', ')}`, 'info');
     }
-    
+
     const result = await window.ipcRenderer.invoke('batch-register', {
       count,
       threads,
       ...currentConfig
     });
-    
+
     const successCount = result.filter(r => r.success).length;
     const failedCount = result.filter(r => !r.success).length;
     const failedResults = result.filter(r => !r.success);
-    
+
     // 更新统计
     updateRegisterStats(count, successCount, failedCount, 100);
-    
+
     // 输出结果日志
     result.forEach((r, index) => {
       if (r.success) {
@@ -1535,9 +1543,9 @@ async function startBatchRegister() {
         addRegisterLog(`✗ [${index + 1}/${count}] 注册失败: ${r.error || '未知错误'}`, 'error');
       }
     });
-    
+
     addRegisterLog(`批量注册完成！成功: ${successCount}, 失败: ${failedCount}`, successCount > 0 ? 'success' : 'error');
-    
+
     // 刷新账号列表
     loadAccounts();
   } catch (error) {
@@ -1554,9 +1562,9 @@ async function cancelBatchRegister() {
   if (!isRegistering) {
     return;
   }
-  
+
   addRegisterLog('正在取消批量注册...', 'warning');
-  
+
   try {
     const result = await window.ipcRenderer.invoke('cancel-batch-register');
     if (result.success) {
@@ -1595,7 +1603,7 @@ window.ipcRenderer.on('registration-log', (event, log) => {
  */
 function calculateExpiry(createdAt, expiresAt) {
   let expiry;
-  
+
   // 优先使用 API 返回的到期时间
   if (expiresAt) {
     expiry = new Date(expiresAt);
@@ -1614,11 +1622,11 @@ function calculateExpiry(createdAt, expiresAt) {
       expiryColor: '#999999'
     };
   }
-  
+
   const now = new Date();
   const daysLeft = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
   const isExpired = daysLeft <= 0;
-  
+
   return {
     expiryDate: expiry,
     daysLeft,
@@ -1882,25 +1890,25 @@ async function loadAccounts() {
 // ==================== 全局账号操作函数 ====================
 
 // Toast 提示函数
-window.showToast = function(message, type = 'info') {
+window.showToast = function (message, type = 'info') {
   const existingToast = document.getElementById('toast');
   if (existingToast) existingToast.remove();
-  
+
   const colors = {
     success: '#34c759',
     error: '#ff3b30',
     info: '#007aff',
     warning: '#ff9500'
   };
-  
+
   const toastHTML = `
     <div id="toast" style="position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: ${colors[type]}; color: white; padding: 12px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 10001; font-size: 14px; font-weight: 500; animation: slideDown 0.3s ease;">
       ${message}
     </div>
   `;
-  
+
   document.body.insertAdjacentHTML('beforeend', toastHTML);
-  
+
   setTimeout(() => {
     const toast = document.getElementById('toast');
     if (toast) {
@@ -1911,7 +1919,7 @@ window.showToast = function(message, type = 'info') {
 };
 
 // 账号详情弹窗函数
-window.showAccountDetailsModal = async function(account) {
+window.showAccountDetailsModal = async function (account) {
   // 查询最新的积分信息
   let usageInfo = null;
   if (account.refreshToken && typeof window.AccountQuery !== 'undefined') {
@@ -1921,7 +1929,7 @@ window.showAccountDetailsModal = async function(account) {
       console.error('查询积分失败:', error);
     }
   }
-  
+
   const modalHTML = `
     <div class="modal-overlay" id="accountDetailsModal" onclick="if(event.target===this) this.remove()">
       <div class="modal-content" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
@@ -1974,7 +1982,7 @@ window.showAccountDetailsModal = async function(account) {
       </div>
     </div>
   `;
-  
+
   document.body.insertAdjacentHTML('beforeend', modalHTML);
   if (typeof lucide !== 'undefined') {
     lucide.createIcons();
@@ -1982,21 +1990,21 @@ window.showAccountDetailsModal = async function(account) {
 };
 
 // 查看账号详情
-window.viewAccountDetails = function(event) {
+window.viewAccountDetails = function (event) {
   event.stopPropagation();
   const accountData = event.currentTarget.getAttribute('data-account');
   console.log('查看详情被点击，账号数据:', accountData);
-  
+
   if (!accountData) {
     console.error('无法获取账号数据');
     showCustomAlert('无法获取账号信息', 'error');
     return;
   }
-  
+
   try {
     const account = JSON.parse(accountData.replace(/&apos;/g, "'"));
     console.log('解析后的账号:', account);
-    
+
     if (typeof showAccountDetailsModal === 'function') {
       showAccountDetailsModal(account);
     } else {
@@ -2010,46 +2018,46 @@ window.viewAccountDetails = function(event) {
 };
 
 // 刷新账号信息
-window.refreshAccountInfo = async function(event) {
+window.refreshAccountInfo = async function (event) {
   event.stopPropagation();
   const btn = event.currentTarget;
   const accountData = btn.getAttribute('data-account');
   if (!accountData) return;
-  
+
   const account = JSON.parse(accountData);
-  
+
   // 显示加载状态
   btn.disabled = true;
   const icon = btn.querySelector('i');
   if (icon) {
     icon.style.animation = 'spin 1s linear infinite';
   }
-  
+
   try {
     const result = await window.ipcRenderer.invoke('refresh-account-credits', account);
     if (result.success) {
       // 更新 UI
       const row = btn.closest('.account-item');
       const email = row.querySelector('.acc-col-email')?.textContent;
-      
+
       // 更新订阅类型
       const typeEl = row.querySelector('.acc-col-type');
       if (typeEl && result.subscriptionType) {
         typeEl.textContent = result.subscriptionType;
       }
-      
+
       // 更新积分
       const creditsEl = row.querySelector('.acc-col-credits');
       if (creditsEl && result.credits !== undefined) {
         creditsEl.textContent = result.credits;
       }
-      
+
       // 更新使用率
       const usageEl = row.querySelector('.acc-col-usage');
       if (usageEl && result.usage !== undefined) {
         usageEl.textContent = result.usage + '%';
       }
-      
+
       showCustomAlert(`账号信息刷新成功！\n\n订阅类型: ${result.subscriptionType || '-'}\n积分: ${result.credits || '-'}\n使用率: ${result.usage || '-'}%`, 'success');
     } else {
       showCustomAlert('刷新失败: ' + (result.error || '未知错误'), 'error');
@@ -2066,19 +2074,19 @@ window.refreshAccountInfo = async function(event) {
 };
 
 // 切换账号
-window.switchAccount = async function(event) {
+window.switchAccount = async function (event) {
   event.stopPropagation();
   const btn = event.currentTarget;
   const accountId = btn.getAttribute('data-id');
   const email = btn.getAttribute('data-email');
-  
+
   const shouldContinue = await showCustomConfirm(
     `确定切换到账号：${email} 吗？\n\n这将自动登录到 Windsurf 并使用该账号。`,
     '切换账号'
   );
-  
+
   if (!shouldContinue) return;
-  
+
   try {
     // 获取完整的账号信息（包括 refreshToken, apiKey 等）
     const accountsResult = await window.ipcRenderer.invoke('get-accounts');
@@ -2086,13 +2094,13 @@ window.switchAccount = async function(event) {
       showCustomAlert('获取账号信息失败', 'error');
       return;
     }
-    
+
     const account = accountsResult.accounts.find(acc => acc.id === accountId || acc.email === email);
     if (!account) {
       showCustomAlert('未找到账号信息', 'error');
       return;
     }
-    
+
     const result = await window.ipcRenderer.invoke('switch-account', account);
     if (result.success) {
       showCustomAlert(`切换成功！\n已切换到账号：${email}`, 'success');
@@ -2106,20 +2114,20 @@ window.switchAccount = async function(event) {
 };
 
 // 导出单个账号 - JSON 格式，包含完整信息
-window.exportSingleAccount = async function(event) {
+window.exportSingleAccount = async function (event) {
   event.stopPropagation();
   const btn = event.currentTarget;
   const accountData = btn.getAttribute('data-account');
-  
+
   if (!accountData) {
     showCustomAlert('无法获取账号信息', 'error');
     return;
   }
-  
+
   try {
     // 解析账号数据
     const account = JSON.parse(accountData.replace(/&apos;/g, "'"));
-    
+
     // 准备导出数据（JSON 格式，包含所有信息）
     const exportData = {
       id: account.id,
@@ -2135,20 +2143,20 @@ window.exportSingleAccount = async function(event) {
       refreshToken: account.refreshToken || '',
       accessToken: account.accessToken || ''
     };
-    
+
     // 转换为 JSON 字符串
     const content = JSON.stringify(exportData, null, 2);
-    
+
     // 生成安全的文件名（移除所有不安全字符，兼容 Windows 和 macOS）
     const safeEmail = account.email
       .replace(/[<>:"\/\\|?*]/g, '_')  // 移除 Windows 不允许的字符
       .replace(/@/g, '_at_')            // 替换 @ 符号
       .replace(/\./g, '_');             // 替换点号
-    
+
     const filename = `${safeEmail}.json`;
-    
+
     console.log(`📤 导出单个账号 (JSON): ${account.email}, 文件名: ${filename}`);
-    
+
     const result = await window.ipcRenderer.invoke('save-file', {
       content: content,
       filename: filename,
@@ -2157,7 +2165,7 @@ window.exportSingleAccount = async function(event) {
         { name: '所有文件', extensions: ['*'] }
       ]
     });
-    
+
     if (result.success) {
       console.log(`✅ 账号导出成功: ${result.filePath}`);
       showCustomAlert(`账号导出成功！\n\n文件已保存到：\n${result.filePath}`, 'success');
@@ -2172,19 +2180,19 @@ window.exportSingleAccount = async function(event) {
 };
 
 // 删除账号
-window.deleteAccount = async function(event) {
+window.deleteAccount = async function (event) {
   event.stopPropagation();
   const btn = event.currentTarget;
   const id = btn.getAttribute('data-id');
   const email = btn.getAttribute('data-email');
-  
+
   const shouldContinue = await showCustomConfirm(
     `确定删除账号：${email} 吗？`,
     '删除账号'
   );
-  
+
   if (!shouldContinue) return;
-  
+
   const result = await window.ipcRenderer.invoke('delete-account', id);
   if (result.success) {
     loadAccounts();
@@ -2246,11 +2254,11 @@ async function showImportAccountForm() {
   // 创建自定义弹窗显示格式说明
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay active';
-  
+
   const dialog = document.createElement('div');
   dialog.className = 'modal-dialog modern-modal';
   dialog.style.maxWidth = '600px';
-  
+
   dialog.innerHTML = `
     <div class="modern-modal-header">
       <div class="modal-title-row">
@@ -2316,21 +2324,21 @@ async function showImportAccountForm() {
       </button>
     </div>
   `;
-  
+
   overlay.appendChild(dialog);
   document.body.appendChild(overlay);
-  
+
   // 初始化图标
   if (window.lucide) {
     lucide.createIcons();
   }
-  
+
   // 确定按钮事件
   document.getElementById('confirmImportBtn').onclick = () => {
     overlay.remove();
     selectImportFile();
   };
-  
+
   // 点击遮罩关闭
   overlay.onclick = (e) => {
     if (e.target === overlay) {
@@ -2345,33 +2353,33 @@ function selectImportFile() {
   fileInput.type = 'file';
   fileInput.accept = '.json,application/json';
   fileInput.style.display = 'none';
-  
+
   fileInput.onchange = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-    
+
     // 验证文件类型
     const fileName = file.name.toLowerCase();
     if (!fileName.endsWith('.json')) {
       showCustomAlert('请选择 JSON 格式文件（.json）', 'error');
       return;
     }
-    
+
     // 验证文件大小（限制为 10MB）
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
       showCustomAlert('文件过大，请选择小于 10MB 的文件', 'error');
       return;
     }
-    
+
     // 读取文件内容（使用 UTF-8 编码，兼容 Windows 和 macOS）
     const reader = new FileReader();
-    
-    reader.onerror = function() {
+
+    reader.onerror = function () {
       showCustomAlert('文件读取失败，请检查文件是否损坏或权限是否正确', 'error');
     };
-    
-    reader.onload = async function(e) {
+
+    reader.onload = async function (e) {
       try {
         const content = e.target.result;
         await processImportFile(content, file.name);
@@ -2380,30 +2388,30 @@ function selectImportFile() {
         showCustomAlert(`处理文件失败: ${error.message}`, 'error');
       }
     };
-    
+
     // 使用 UTF-8 编码读取（跨平台兼容）
     reader.readAsText(file, 'utf-8');
   };
-  
+
   document.body.appendChild(fileInput);
   fileInput.click();
   document.body.removeChild(fileInput);
 }
 
 async function processImportFile(content, filename = 'unknown') {
-  
+
   if (!content || content.trim() === '') {
     showCustomAlert('文件内容为空，请选择有效的 JSON 文件！', 'error');
     return;
   }
-  
+
   console.log(`📥 开始处理导入文件: ${filename}`);
-  
+
   // 解析 JSON 格式账号
   const accounts = [];
   const errors = [];
   let parsed;
-  
+
   try {
     // 移除 BOM 标记（如果存在，兼容 Windows 记事本保存的文件）
     const cleanContent = content.replace(/^\uFEFF/, '');
@@ -2413,54 +2421,54 @@ async function processImportFile(content, filename = 'unknown') {
     showCustomAlert(`JSON 格式错误，无法解析账号数据！\n\n错误详情: ${e.message}`, 'error');
     return;
   }
-  
+
   if (!Array.isArray(parsed)) {
     showCustomAlert('JSON 格式不正确，根节点必须是数组！\n\n请确保文件格式为: [{ "email": "...", "password": "..." }]', 'error');
     return;
   }
-  
+
   parsed.forEach((item, index) => {
     if (!item || typeof item !== 'object') {
       errors.push(`第 ${index + 1} 条记录格式错误：不是对象`);
       return;
     }
-    
+
     const email = (item.email || '').trim();
     const password = (item.password || '').toString();
     const apiKey = item.apiKey || item.token || item.accessToken || '';
-    
+
     if (!email) {
       errors.push(`第 ${index + 1} 条记录缺少邮箱字段`);
       return;
     }
-    
+
     if (!email.includes('@')) {
       errors.push(`第 ${index + 1} 条记录邮箱格式错误：${email}`);
       return;
     }
-    
+
     accounts.push({ email, password, apiKey });
   });
-  
+
   if (accounts.length === 0) {
     showCustomAlert('没有有效的账号数据！', 'error');
     return;
   }
-  
+
   // 获取现有账号列表进行重复检测
   const existingAccountsResult = await window.ipcRenderer.invoke('get-accounts');
   const existingEmails = new Set();
-  
+
   if (existingAccountsResult.success && existingAccountsResult.accounts) {
     existingAccountsResult.accounts.forEach(acc => {
       existingEmails.add(acc.email.toLowerCase());
     });
   }
-  
+
   // 检测重复账号
   const duplicateAccounts = [];
   const newAccounts = [];
-  
+
   accounts.forEach(account => {
     if (existingEmails.has(account.email.toLowerCase())) {
       duplicateAccounts.push(account.email);
@@ -2468,13 +2476,13 @@ async function processImportFile(content, filename = 'unknown') {
       newAccounts.push(account);
     }
   });
-  
+
   // 显示确认信息
   let confirmMsg = '';
   if (newAccounts.length > 0) {
     confirmMsg += `准备导入 ${newAccounts.length} 个新账号`;
   }
-  
+
   if (duplicateAccounts.length > 0) {
     confirmMsg += `\n跳过 ${duplicateAccounts.length} 个重复账号：\n`;
     confirmMsg += duplicateAccounts.slice(0, 5).join('\n');
@@ -2482,29 +2490,29 @@ async function processImportFile(content, filename = 'unknown') {
       confirmMsg += `\n... 还有 ${duplicateAccounts.length - 5} 个`;
     }
   }
-  
+
   if (errors.length > 0) {
     confirmMsg += `\n跳过 ${errors.length} 个格式错误行`;
   }
-  
+
   if (newAccounts.length === 0) {
     showCustomAlert('没有新账号需要导入！所有账号都已存在。', 'warning');
     return;
   }
-  
+
   confirmMsg += '\n\n确定要导入吗？';
-  
+
   const shouldContinue = await showCustomConfirm(confirmMsg, '确认导入');
   if (!shouldContinue) return;
-  
+
   // 更新要导入的账号列表（只导入新账号）
   const accountsToImport = newAccounts;
-  
+
   // 批量导入
   let successCount = 0;
   let failCount = 0;
   const failDetails = [];
-  
+
   for (const account of accountsToImport) {
     const result = await window.ipcRenderer.invoke('add-account', account);
     if (result.success) {
@@ -2514,32 +2522,32 @@ async function processImportFile(content, filename = 'unknown') {
       failDetails.push(`${account.email}: ${result.error}`);
     }
   }
-  
+
   // 显示结果
   let resultMsg = `导入完成！\n\n`;
   resultMsg += `✓ 成功导入: ${successCount} 个\n`;
-  
+
   if (failCount > 0) {
     resultMsg += `✗ 导入失败: ${failCount} 个\n`;
   }
-  
+
   if (duplicateAccounts.length > 0) {
     resultMsg += `⊘ 跳过重复: ${duplicateAccounts.length} 个\n`;
   }
-  
+
   if (errors.length > 0) {
     resultMsg += `⚠ 格式错误: ${errors.length} 行\n`;
   }
-  
+
   if (failDetails.length > 0 && failDetails.length <= 5) {
     resultMsg += `\n失败详情:\n`;
     failDetails.forEach(detail => {
       resultMsg += `• ${detail}\n`;
     });
   }
-  
+
   showImportResultDialog(resultMsg, successCount, failCount, duplicateAccounts.length, errors.length);
-  
+
   // 刷新账号列表
   if (successCount > 0) {
     loadAccounts();
@@ -2549,15 +2557,15 @@ async function processImportFile(content, filename = 'unknown') {
 function showImportResultDialog(message, successCount, failCount, duplicateCount, errorCount) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay active';
-  
+
   const dialog = document.createElement('div');
   dialog.className = 'modal-dialog modern-modal';
   dialog.style.maxWidth = '500px';
-  
+
   let iconHtml = '';
   let iconColor = '';
   let titleText = '';
-  
+
   if (failCount === 0 && errorCount === 0 && duplicateCount === 0) {
     iconHtml = '<i data-lucide="check-circle" style="width: 48px; height: 48px; color: #34c759;"></i>';
     titleText = '导入成功';
@@ -2568,7 +2576,7 @@ function showImportResultDialog(message, successCount, failCount, duplicateCount
     iconHtml = '<i data-lucide="x-circle" style="width: 48px; height: 48px; color: #ff3b30;"></i>';
     titleText = '导入失败';
   }
-  
+
   dialog.innerHTML = `
     <div class="modern-modal-header">
       <div class="modal-title-row">
@@ -2589,15 +2597,15 @@ function showImportResultDialog(message, successCount, failCount, duplicateCount
       </button>
     </div>
   `;
-  
+
   overlay.appendChild(dialog);
   document.body.appendChild(overlay);
-  
+
   // 初始化图标
   if (window.lucide) {
     lucide.createIcons();
   }
-  
+
   // 点击遮罩关闭
   overlay.onclick = (e) => {
     if (e.target === overlay) {
@@ -2609,15 +2617,15 @@ function showImportResultDialog(message, successCount, failCount, duplicateCount
 function showCustomAlert(message, type = 'info') {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay active';
-  
+
   const dialog = document.createElement('div');
   dialog.className = 'modal-dialog modern-modal';
   dialog.style.maxWidth = '400px';
-  
+
   let iconHtml = '';
   let titleText = '';
-  
-  switch(type) {
+
+  switch (type) {
     case 'success':
       iconHtml = '<i data-lucide="check-circle" style="width: 24px; height: 24px; color: #34c759;"></i>';
       titleText = '成功';
@@ -2634,7 +2642,7 @@ function showCustomAlert(message, type = 'info') {
       iconHtml = '<i data-lucide="info" style="width: 24px; height: 24px; color: #007aff;"></i>';
       titleText = '提示';
   }
-  
+
   dialog.innerHTML = `
     <div class="modern-modal-header">
       <div class="modal-title-row">
@@ -2655,15 +2663,15 @@ function showCustomAlert(message, type = 'info') {
       </button>
     </div>
   `;
-  
+
   overlay.appendChild(dialog);
   document.body.appendChild(overlay);
-  
+
   // 初始化图标
   if (window.lucide) {
     lucide.createIcons();
   }
-  
+
   // 点击遮罩关闭
   overlay.onclick = (e) => {
     if (e.target === overlay) {
@@ -2850,7 +2858,7 @@ function toggleDeleteMode() {
 
 function copyAccount(email, password) {
   const text = `邮箱: ${email}\n密码: ${password}`;
-  
+
   // 尝试多种复制方法以确保跨平台兼容性
   if (navigator.clipboard && navigator.clipboard.writeText) {
     // 现代浏览器方法
@@ -2875,15 +2883,15 @@ function fallbackCopyToClipboard(text) {
     textArea.style.left = '-999999px';
     textArea.style.top = '-999999px';
     document.body.appendChild(textArea);
-    
+
     // 选择并复制
     textArea.focus();
     textArea.select();
-    
+
     // 尝试使用execCommand (兼容老版本)
     const successful = document.execCommand('copy');
     document.body.removeChild(textArea);
-    
+
     if (successful) {
       showCustomAlert('账号信息已复制到剪贴板！', 'success');
     } else {
@@ -2930,9 +2938,9 @@ function showManualCopyDialog(text) {
       </div>
     </div>
   `;
-  
+
   document.body.appendChild(modal);
-  
+
   // 自动选择文本
   const textarea = modal.querySelector('textarea');
   setTimeout(() => {
@@ -2964,20 +2972,20 @@ async function loadAccountsForSwitch() {
 // 检测Windsurf配置路径
 async function detectWindsurfPaths() {
   const paths = await window.ipcRenderer.invoke('detect-windsurf-paths');
-  
+
   let html = '<div style="margin-top:20px; padding:15px; background:#f9f9f9; border-radius:6px;">';
   html += '<h4>Windsurf配置路径检测</h4>';
   html += '<div style="font-size:12px; margin-top:10px;">';
-  
+
   for (const key in paths) {
     const item = paths[key];
     const status = item.exists ? '✓' : '✗';
     const color = item.exists ? '#27ae60' : '#999';
     html += `<div style="margin:5px 0; color:${color};">${status} ${key}: ${item.path}</div>`;
   }
-  
+
   html += '</div></div>';
-  
+
   const statusEl = document.getElementById('switchStatus');
   if (statusEl.innerHTML === '') {
     statusEl.innerHTML = html;
@@ -3006,12 +3014,12 @@ window.ipcRenderer.on('switch-error', (event, error) => {
 
 async function switchSelectedAccount() {
   const accountId = selectedSwitchAccountId;
-  
+
   if (!accountId) {
     showCustomAlert('请选择要切换的账号', 'warning');
     return;
   }
-  
+
   const confirmed = await showCustomConfirm({
     title: '自动化切换',
     message: '完整自动化切换将关闭并重置 Windsurf，然后启动并完成初始设置',
@@ -3020,13 +3028,13 @@ async function switchSelectedAccount() {
     type: 'info'
   });
   if (!confirmed) return;
-  
+
   const accountsResult = await window.ipcRenderer.invoke('get-accounts');
   const accounts = accountsResult.success ? (accountsResult.accounts || []) : [];
   const account = accounts.find(acc => acc.id === accountId);
-  
+
   const result = await window.ipcRenderer.invoke('switch-account', account);
-  
+
   const statusEl = document.getElementById('switchStatus');
   if (result.success) {
     // 标记为已使用
@@ -3055,12 +3063,12 @@ async function switchSelectedAccount() {
 // 加载当前机器ID
 async function loadCurrentMachineId() {
   const machineIdEl = document.getElementById('currentMachineId');
-  
+
   if (!machineIdEl) return;
-  
+
   try {
     const result = await window.ipcRenderer.invoke('get-machine-id');
-    
+
     if (result.success) {
       machineIdEl.innerHTML = `
         <div style="margin-bottom:8px;">
@@ -3094,7 +3102,7 @@ function renderSettingsFromCurrentConfig() {
   // 域名列表由 DomainManager 管理，不在这里渲染
   // DomainManager.init() 会在切换到设置页面时自动调用
   console.log('📝 渲染设置界面（域名由 DomainManager 管理）');
-  
+
   // 加载IMAP配置
   const imapHost = document.getElementById('imapHost');
   const imapPort = document.getElementById('imapPort');
@@ -3114,14 +3122,14 @@ function renderSettingsFromCurrentConfig() {
     if (imapUser) imapUser.value = '';
     if (imapPassword) imapPassword.value = '';
   }
-  
+
   // 加载密码配置
   const passwordMode = document.getElementById('passwordMode');
   if (passwordMode) {
     passwordMode.value = currentConfig.passwordMode || 'email';
     console.log('📥 密码模式已加载:', passwordMode.value);
   }
-  
+
   // 加载查询间隔配置
   const queryInterval = document.getElementById('queryInterval');
   if (queryInterval) {
@@ -3138,7 +3146,7 @@ function renderSettingsFromCurrentConfig() {
       imapPort.value = '993';
       imapPort.readOnly = true;
     }
-  } catch (e) {}
+  } catch (e) { }
 }
 
 // 从 localStorage 读取配置到 currentConfig，然后渲染界面
@@ -3212,7 +3220,7 @@ function fillImapConfig() {
       note: '需要使用应用专用密码'
     }
   };
-  
+
   if (provider && provider !== 'custom' && imapConfigs[provider]) {
     const config = imapConfigs[provider];
     const imapHost = document.getElementById('imapHost');
@@ -3227,7 +3235,7 @@ function fillImapConfig() {
       imapPort.value = '993';
       imapPort.readOnly = true;
     }
-    
+
     // 显示提示信息
     document.getElementById('settingsStatus').innerHTML = `
       <div class="status-message status-info">
@@ -3259,7 +3267,7 @@ function showCenterMessage(message, type = 'info', duration = 3000) {
   if (existing) {
     existing.remove();
   }
-  
+
   // 创建遮罩层
   const overlay = document.createElement('div');
   overlay.className = 'center-message-overlay';
@@ -3276,14 +3284,14 @@ function showCenterMessage(message, type = 'info', duration = 3000) {
     z-index: 10000;
     animation: fadeIn 0.2s ease;
   `;
-  
+
   // 创建消息框
   const messageBox = document.createElement('div');
   messageBox.className = 'center-message-box';
-  
+
   // 根据类型设置样式
   let bgColor, iconColor, icon;
-  switch(type) {
+  switch (type) {
     case 'success':
       bgColor = '#d1f2dd';
       iconColor = '#34c759';
@@ -3304,7 +3312,7 @@ function showCenterMessage(message, type = 'info', duration = 3000) {
       iconColor = '#007aff';
       icon = 'ℹ';
   }
-  
+
   messageBox.style.cssText = `
     background: white;
     border-radius: 12px;
@@ -3314,7 +3322,7 @@ function showCenterMessage(message, type = 'info', duration = 3000) {
     text-align: center;
     animation: slideUp 0.3s ease;
   `;
-  
+
   messageBox.innerHTML = `
     <div style="
       width: 60px;
@@ -3336,17 +3344,17 @@ function showCenterMessage(message, type = 'info', duration = 3000) {
       word-break: break-word;
     ">${message}</div>
   `;
-  
+
   overlay.appendChild(messageBox);
   document.body.appendChild(overlay);
-  
+
   // 点击遮罩层关闭
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) {
       overlay.remove();
     }
   });
-  
+
   // 自动关闭
   if (duration > 0) {
     setTimeout(() => {
@@ -3364,23 +3372,23 @@ async function testImap() {
     user: document.getElementById('imapUser').value,
     password: document.getElementById('imapPassword').value
   };
-  
+
   if (!config.user || !config.password) {
     showCenterMessage('请填写完整的IMAP配置', 'warning');
     return;
   }
-  
+
   // 显示测试中提示
   showCenterMessage('正在测试IMAP连接...', 'info', 0);
-  
+
   const result = await window.ipcRenderer.invoke('test-imap', config);
-  
+
   // 移除测试中提示
   const existing = document.querySelector('.center-message-overlay');
   if (existing) {
     existing.remove();
   }
-  
+
   // 显示结果
   if (result.success) {
     showCenterMessage(result.message, 'success');
@@ -3391,7 +3399,7 @@ async function testImap() {
 
 async function saveSettings() {
   console.log('💾 开始保存设置...');
-  
+
   try {
     // 从当前界面上的域名标签收集 emailDomains
     // 使用 DomainManager 中的域名列表
@@ -3429,14 +3437,14 @@ async function saveSettings() {
       user: imapUser ? imapUser.value : '',
       password: imapPassword ? imapPassword.value : ''
     };
-    
+
     // 保存密码配置
     const passwordMode = document.getElementById('passwordMode');
     if (passwordMode) {
       currentConfig.passwordMode = passwordMode.value;
       console.log('💾 密码模式已保存:', currentConfig.passwordMode);
     }
-    
+
     // 保存查询间隔配置
     const queryInterval = document.getElementById('queryInterval');
     if (queryInterval) {
@@ -3450,17 +3458,17 @@ async function saveSettings() {
         queryInterval.value = 1440;
       }
       currentConfig.queryInterval = interval;
-      
+
       // 重启自动查询
       if (typeof window.restartAutoQuery === 'function') {
         window.restartAutoQuery(interval);
       }
     }
-    
+
     // 保存到本地存储
     localStorage.setItem('windsurfConfig', JSON.stringify(currentConfig));
     console.log('✅ 配置已保存到 localStorage');
-    
+
     // 通过IPC保存配置到文件
     try {
       const result = await window.ipcRenderer.invoke('save-windsurf-config', currentConfig);
@@ -3472,10 +3480,10 @@ async function saveSettings() {
     } catch (error) {
       console.warn('⚠️ 调用IPC保存配置失败:', error);
     }
-    
+
     // 显示成功弹窗
     showCenterMessage('配置已保存成功！', 'success', 2000);
-    
+
     // 延迟隐藏悬浮保存按钮（让用户看到保存成功的反馈）
     const saveBtn = document.querySelector('.save-btn');
     if (saveBtn) {
@@ -3483,15 +3491,15 @@ async function saveSettings() {
         saveBtn.style.display = 'none';
       }, 2000);
     }
-    
+
     console.log('✅ 保存设置完成');
-    
+
   } catch (error) {
     console.error('❌ 保存设置失败:', error);
-    
+
     // 显示错误弹窗
     showCenterMessage(`❌ 保存失败: ${error.message}`, 'error', 5000);
-    
+
     // 保持按钮可见，让用户可以重试
     const saveBtn = document.querySelector('.save-btn');
     if (saveBtn) {
@@ -3504,18 +3512,18 @@ async function saveSettings() {
 function initSettingsChangeListener() {
   const settingsView = document.getElementById('settingsView');
   if (!settingsView) return;
-  
+
   const saveBtn = document.querySelector('.save-btn');
   if (!saveBtn) return;
-  
+
   // 监听所有输入框、选择框的变化
   const inputs = settingsView.querySelectorAll('input, select, textarea');
-  
+
   inputs.forEach(input => {
     input.addEventListener('input', () => {
       saveBtn.style.display = 'flex';
     });
-    
+
     input.addEventListener('change', () => {
       saveBtn.style.display = 'flex';
     });
@@ -3541,52 +3549,52 @@ async function getCurrentAccount() {
     const currentAccountUsage = document.getElementById('currentAccountUsage');
     const currentAccountExpires = document.getElementById('currentAccountExpires');
     const currentAccountType = document.getElementById('currentAccountType');
-    
+
     // topInfoRow 由统计信息加载时统一显示
-    
+
     if (result && result.success && result.email) {
       // 有登录信息
       if (currentAccountEmail) {
         currentAccountEmail.textContent = result.email;
         currentAccountEmail.style.color = '';
       }
-      
+
       // 从本地 accounts.json 读取账号详情
       try {
         const response = await window.ipcRenderer.invoke('load-accounts');
-        
+
         // 检查响应格式
         if (!response || !response.success) {
           console.warn('读取账号列表失败:', response);
           throw new Error('读取账号列表失败');
         }
-        
+
         const accounts = response.accounts || [];
         const account = accounts.find(acc => acc.email === result.email);
-        
+
         if (account) {
           // 找到账号,显示详情
           const credits = account.credits || account.credit || 0;
           const usedCredits = account.usedCredits || 0;
           const accountType = account.type || 'Free';
-          
+
           // 显示总积分
           if (currentAccountCredits) {
             currentAccountCredits.textContent = credits.toLocaleString();
           }
-          
+
           // 显示已使用积分
           if (currentAccountUsedCredits) {
             currentAccountUsedCredits.textContent = usedCredits.toLocaleString();
           }
-          
+
           // 更新积分进度条
           const creditsProgressBar = document.getElementById('creditsProgressBar');
           if (creditsProgressBar && credits > 0) {
             const usagePercent = Math.min(100, Math.round((usedCredits / credits) * 100));
             creditsProgressBar.style.width = `${usagePercent}%`;
           }
-          
+
           // 显示账号类型（带样式）
           if (currentAccountType) {
             currentAccountType.textContent = accountType;
@@ -3604,18 +3612,18 @@ async function getCurrentAccount() {
               currentAccountType.classList.add('trial');
             }
           }
-          
+
           // 更新状态指示点
           const statusDot = document.getElementById('loginStatusDot');
           if (statusDot) {
             statusDot.classList.remove('offline');
           }
-          
+
           // 显示使用率
           if (currentAccountUsage) {
             const usagePercent = account.usage || account.usagePercent || account.usage_percent || 0;
             let usageColor = '';
-            
+
             if (usagePercent >= 90) {
               usageColor = '#ef4444';
             } else if (usagePercent >= 70) {
@@ -3623,21 +3631,21 @@ async function getCurrentAccount() {
             } else if (usagePercent >= 50) {
               usageColor = '#eab308';
             }
-            
+
             currentAccountUsage.textContent = `${usagePercent}%`;
             currentAccountUsage.style.color = usageColor;
           }
-          
+
           // 显示到期时间
           if (currentAccountExpires) {
             if (account.expiresAt) {
               const expiresDate = new Date(account.expiresAt);
               const now = new Date();
               const daysLeft = Math.ceil((expiresDate - now) / (1000 * 60 * 60 * 24));
-              
+
               let expiresText = '';
               let expiresColor = '';
-              
+
               if (daysLeft < 0) {
                 expiresText = '已过期';
                 expiresColor = '#ef4444';
@@ -3648,9 +3656,9 @@ async function getCurrentAccount() {
                 expiresText = `${daysLeft}天后`;
                 expiresColor = '#f59e0b';
               } else {
-                expiresText = expiresDate.toLocaleDateString('zh-CN', {month:'short', day:'numeric'});
+                expiresText = expiresDate.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
               }
-              
+
               currentAccountExpires.textContent = expiresText;
               currentAccountExpires.style.color = expiresColor;
             } else {
@@ -3717,7 +3725,7 @@ async function getCurrentAccount() {
   } catch (error) {
     console.error('获取当前登录账号失败:', error);
     const currentAccountEmail = document.getElementById('currentAccountEmail');
-    
+
     // 显示错误状态
     if (currentAccountEmail) {
       currentAccountEmail.textContent = '获取失败';
@@ -3744,13 +3752,13 @@ function startCurrentAccountAutoRefresh() {
   if (currentAccountRefreshTimer) {
     clearInterval(currentAccountRefreshTimer);
   }
-  
+
   // 设置新的定时器 (60秒 = 1分钟)
   currentAccountRefreshTimer = setInterval(async () => {
     console.log('🔄 定时刷新当前登录账号...');
     await refreshCurrentAccount();
   }, 60000);
-  
+
   console.log('⏰ 已启动当前登录账号定时刷新 (每1分钟)');
 }
 
@@ -3773,28 +3781,28 @@ window.addEventListener('DOMContentLoaded', async () => {
     'linux': 'Linux'
   };
   const platformText = platformMap[platform] || platform;
-  
+
   // 更新侧边栏平台信息
   const sidebarPlatformInfo = document.getElementById('sidebarPlatformInfo');
   if (sidebarPlatformInfo) {
     sidebarPlatformInfo.textContent = platformText;
   }
-  
+
   // 更新系统设置页面平台信息
   const platformInfo = document.getElementById('platformInfo');
   if (platformInfo) {
     platformInfo.textContent = platformText;
   }
-  
+
   // 获取当前登录账号
   await getCurrentAccount();
-  
+
   // 启动定时刷新当前登录账号 (每1分钟)
   startCurrentAccountAutoRefresh();
-  
+
   // 加载"已使用账号"持久化记录
   loadUsedAccountsFromStorage();
-  
+
   // 先尝试从IPC读取配置文件
   console.log('🔄 初始化：开始加载配置...');
   try {
@@ -3828,7 +3836,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       console.log('⚠️ 所有配置源都失败，使用默认配置');
     }
   }
-  
+
   console.log('📋 当前配置状态:', currentConfig);
   console.log('🔄 开始加载账号列表...');
   loadAccounts();
@@ -3836,10 +3844,10 @@ window.addEventListener('DOMContentLoaded', async () => {
 
 // ==================== 右键菜单辅助函数（全局）====================
 
-window.refreshSingleAccount = async function(email) {
+window.refreshSingleAccount = async function (email) {
   const result = await window.ipcRenderer.invoke('get-accounts');
   if (!result.success) return;
-  
+
   const account = result.accounts.find(acc => acc.email === email);
   if (account && account.refreshToken && typeof window.AccountQuery !== 'undefined') {
     showToast('正在刷新...', 'info');
@@ -3853,13 +3861,13 @@ window.refreshSingleAccount = async function(email) {
   }
 };
 
-window.switchAccountFromMenu = async function(email, password) {
+window.switchAccountFromMenu = async function (email, password) {
   const shouldContinue = await showCustomConfirm(
     `确定切换到账号：${email} 吗？\n\n这将自动登录到 Windsurf 并使用该账号。`,
     '切换账号'
   );
   if (!shouldContinue) return;
-  
+
   try {
     // 获取完整的账号信息
     const accountsResult = await window.ipcRenderer.invoke('get-accounts');
@@ -3867,13 +3875,13 @@ window.switchAccountFromMenu = async function(email, password) {
       showToast('获取账号信息失败', 'error');
       return;
     }
-    
+
     const account = accountsResult.accounts.find(acc => acc.email === email);
     if (!account) {
       showToast('未找到账号信息', 'error');
       return;
     }
-    
+
     const result = await window.ipcRenderer.invoke('switch-account', account);
     if (result.success) {
       showToast(`切换成功！已切换到：${email}`, 'success');
@@ -3885,7 +3893,7 @@ window.switchAccountFromMenu = async function(email, password) {
   }
 };
 
-window.exportSingleAccountFromMenu = async function(email, password) {
+window.exportSingleAccountFromMenu = async function (email, password) {
   try {
     const exportData = `邮箱: ${email}\n密码: ${password}\n`;
     const result = await window.ipcRenderer.invoke('save-file', {
@@ -3906,13 +3914,13 @@ window.exportSingleAccountFromMenu = async function(email, password) {
   }
 };
 
-window.deleteAccountFromMenu = async function(id, email) {
+window.deleteAccountFromMenu = async function (id, email) {
   const shouldContinue = await showCustomConfirm(
     `确定删除账号：${email} 吗？`,
     '删除账号'
   );
   if (!shouldContinue) return;
-  
+
   const result = await window.ipcRenderer.invoke('delete-account', id);
   if (result.success) {
     loadAccounts();
@@ -4088,7 +4096,7 @@ async function closeBatchTokenProgressModal() {
   } catch (error) {
     console.error('取消批量获取Token失败:', error);
   }
-  
+
   const modal = document.getElementById('batchTokenProgressModal');
   if (modal) {
     modal.classList.remove('active');
@@ -4134,7 +4142,7 @@ ipcRenderer.on('batch-token-progress', (event, data) => {
   // 更新进度
   document.getElementById('batchTokenProgressText').textContent = `${current} / ${total}`;
   document.getElementById('batchTokenTotalCount').textContent = total;
-  
+
   const percentage = (current / total) * 100;
   document.getElementById('batchTokenProgressFill').style.width = `${percentage}%`;
 
@@ -4172,7 +4180,7 @@ ipcRenderer.on('batch-token-complete', (event, data) => {
   const { total, successCount, failCount, cancelled } = data;
 
   addBatchTokenLog('', 'info');
-  
+
   if (cancelled) {
     // 用户取消
     addBatchTokenLog('========== 操作已取消 ==========', 'warning');
@@ -4180,7 +4188,7 @@ ipcRenderer.on('batch-token-complete', (event, data) => {
     addBatchTokenLog(`成功: ${successCount} 个`, 'success');
     addBatchTokenLog(`失败: ${failCount} 个`, failCount > 0 ? 'error' : 'info');
     addBatchTokenLog(`剩余: ${total - successCount - failCount} 个（已跳过）`, 'warning');
-    
+
     showToast(`操作已取消！已处理 ${successCount + failCount} 个账号`, 'warning');
   } else {
     // 正常完成
@@ -4188,7 +4196,7 @@ ipcRenderer.on('batch-token-complete', (event, data) => {
     addBatchTokenLog(`总计: ${total} 个账号`, 'info');
     addBatchTokenLog(`成功: ${successCount} 个`, 'success');
     addBatchTokenLog(`失败: ${failCount} 个`, failCount > 0 ? 'error' : 'info');
-    
+
     if (failCount === 0) {
       showToast(`批量获取完成！成功 ${successCount} 个`, 'success');
     } else {
